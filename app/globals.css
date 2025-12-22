@@ -1,5 +1,4 @@
-@import "tailwindcss/preflight";
-@tailwind utilities;
+@import "tailwindcss";
 
 :root{
   --primary:#0B3C6F;
@@ -9,7 +8,6 @@
   --muted:#6F7A85;
   --white:#FFFFFF;
 
-  /* extra premium tokens */
   --bg: #ffffff;
   --glass: rgba(255,255,255,0.72);
   --glass-2: rgba(255,255,255,0.55);
@@ -17,9 +15,7 @@
   --shadow: 0 24px 80px rgba(11, 60, 111, 0.18);
 }
 
-html, body{
-  height: 100%;
-}
+html, body{ height: 100%; }
 
 body{
   background: var(--bg);
@@ -28,11 +24,8 @@ body{
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection{
-  background: rgba(47,128,193,0.18);
-}
+::selection{ background: rgba(47,128,193,0.18); }
 
-/* soft premium scrollbar */
 *{
   scrollbar-width: thin;
   scrollbar-color: rgba(11,60,111,0.35) transparent;
