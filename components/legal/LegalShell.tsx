@@ -13,8 +13,8 @@ export default function LegalShell({
   return (
     <main className="relative min-h-[70vh] overflow-hidden bg-white">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-(--light) blur-3xl" />
-        <div className="absolute -bottom-64 right-[-140px] h-[560px] w-[560px] rounded-full bg-(--light) blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-520px w-520px -translate-x-1/2 rounded-full bg-(--light) blur-3xl" />
+        <div className="absolute -bottom-64 right--140px h-560px w-560px rounded-full bg-(--light) blur-3xl" />
         <div className="absolute inset-0 opacity-[0.45] bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.08)_1px,transparent_0)] bg-size-[18px_18px]" />
       </div>
 

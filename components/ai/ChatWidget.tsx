@@ -113,7 +113,7 @@ export default function ChatWidget() {
             <div className="p-4">
               <div
                 ref={listRef}
-                className="h-[300px] space-y-3 overflow-auto rounded-2xl bg-(--light) p-3 ring-1 ring-black/5"
+                className="h-300px space-y-3 overflow-auto rounded-2xl bg-(--light) p-3 ring-1 ring-black/5"
               >
                 {messages.map((m, idx) => (
                   <div
