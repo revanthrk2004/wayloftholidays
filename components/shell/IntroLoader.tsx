@@ -22,7 +22,7 @@ export default function IntroLoader({ show, onDone }: Props) {
     <AnimatePresence>
       {show && (
         <motion.div
-          className="fixed inset-0 z-[999] overflow-hidden bg-(--primary)"
+          className="fixed inset-0 z-999 overflow-hidden bg-(--primary)"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? 0.25 : 0.45 }}
