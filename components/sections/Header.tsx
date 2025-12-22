@@ -1,32 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Container from "@/components/ui/Container";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Search, Sparkles } from "lucide-react";
-import { useState } from "react";
 
 export default function Header() {
   const { scrollY } = useScroll();
-  const bg = useTransform(scrollY, [0, 120], ["rgba(255,255,255,0.72)", "rgba(255,255,255,0.88)"]);
+  const bg = useTransform(scrollY, [0, 120], ["rgba(255,255,255,0.62)", "rgba(255,255,255,0.86)"]);
   const border = useTransform(scrollY, [0, 120], ["rgba(15,23,42,0.06)", "rgba(15,23,42,0.10)"]);
-
-  const [q, setQ] = useState("");
-
-  function openConcierge() {
-    const msg =
-      q.trim().length > 0
-        ? `Hi Wayloft, I want help planning this trip: ${q.trim()}`
-        : "Hi Wayloft, I want help planning a trip. My destination, dates, and budget are:";
-    window.dispatchEvent(new CustomEvent("wayloft:chat_open", { detail: { prefill: msg } }));
-  }
+  const shadow = useTransform(scrollY, [0, 120], ["0 0 0 rgba(0,0,0,0)", "0 18px 70px rgba(11,60,111,0.10)"]);
 
   return (
-    <motion.header style={{ backgroundColor: bg, borderColor: border }} className="sticky top-0 z-50 border-b backdrop-blur-xl">
+    <motion.header
+      style={{ backgroundColor: bg, borderColor: border, boxShadow: shadow }}
+      className="sticky top-0 z-50 border-b backdrop-blur-xl"
+    >
       <Container className="flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-(--light) ring-1 ring-black/5">
-            <span className="text-sm font-black text-(--primary)">W</span>
+          <div className="relative h-10 w-10 overflow-hidden rounded-xl ring-1 ring-black/10 bg-white">
+            <Image
+              src="/wayloft-logo.png"
+              alt="Wayloft Holidays"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
 
           <div className="leading-tight">
@@ -56,33 +56,27 @@ export default function Header() {
         </div>
       </Container>
 
-      {/* Search bar row */}
+      {/* Search row (we’ll wire this later to open chat) */}
       <div className="border-t border-black/5">
         <Container className="py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="hidden text-xs text-(--muted) md:flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-(--secondary)" />
-              <span>Tell us your travel plans and we’ll design the perfect trip.</span>
+              <span>Tell us your travel plans — we’ll design the perfect trip.</span>
             </div>
 
             <div className="w-full md:max-w-3xl">
-              <div className="flex w-full overflow-hidden rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_30px_rgba(11,60,111,0.10)]">
+              <div className="flex w-full overflow-hidden rounded-2xl bg-white/80 ring-1 ring-black/10 backdrop-blur shadow-[0_10px_30px_rgba(11,60,111,0.10)]">
                 <div className="flex items-center gap-2 px-4">
                   <Search className="h-5 w-5 text-(--muted)" />
                 </div>
 
                 <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && openConcierge()}
                   className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-(--muted)"
                   placeholder="Tell us your travel plans"
                 />
 
-                <button
-                  onClick={openConcierge}
-                  className="h-12 px-6 bg-(--primary) text-white text-sm font-semibold hover:opacity-95 active:opacity-90"
-                >
+                <button className="h-12 px-6 bg-(--primary) text-white text-sm font-semibold hover:opacity-95 active:opacity-90">
                   SEARCH
                 </button>
               </div>

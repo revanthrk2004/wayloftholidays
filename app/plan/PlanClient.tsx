@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Wand2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import { cn } from "@/components/ui/cn";
@@ -70,7 +70,8 @@ export default function PlanClient() {
     notes: "",
   });
 
-  const [status, setStatus] = useState<"idle" | "ok">("idle");
+  const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
+  const [sending, setSending] = useState(false);
 
   const summary = useMemo(() => {
     const style = form.style.length ? form.style.join(", ") : "Any";
@@ -101,14 +102,40 @@ Notes: ${form.notes || "-"}
     setForm((p) => ({ ...p, [key]: val }));
   }
 
-  function sendToChat() {
-    // we’ll connect this to the widget next step (custom event)
+  async function sendEmailLead(content: string) {
+    const res = await fetch("/api/lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: "New Wayloft Trip Request",
+        content,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Lead API failed");
+    }
+  }
+
+  async function sendToChatAndEmail() {
+    if (sending) return;
+    setSending(true);
+    setStatus("idle");
+
+    // Open chat with prefill (instant UX)
     window.dispatchEvent(
-      new CustomEvent("wayloft:chat_open", {
-        detail: { prefill: summary },
-      })
+      new CustomEvent("wayloft:chat_open", { detail: { prefill: summary } })
     );
-    setStatus("ok");
+
+    try {
+      // Email lead (reliable capture)
+      await sendEmailLead(summary);
+      setStatus("ok");
+    } catch {
+      setStatus("error");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -121,12 +148,7 @@ Notes: ${form.notes || "-"}
       </div>
 
       <Container className="relative py-10 md:py-14">
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={cardIn}
-          className="mb-8"
-        >
+        <motion.div initial="hidden" animate="show" variants={cardIn} className="mb-8">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-(--primary) ring-1 ring-black/10">
@@ -140,14 +162,13 @@ Notes: ${form.notes || "-"}
                 Plan your trip
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--muted) md:text-base">
-                Give us your dates, budget and vibe. We will craft a premium
-                itinerary around you, not a generic package.
+                Give us your dates, budget and vibe. We will craft a premium itinerary around you, not a generic package.
               </p>
             </div>
 
             <Link
               href="/"
-              className="hidden rounded-xl bg-white px-4 py-2 text-sm font-semibold text-(--primary) ring-1 ring-black/10 hover:bg-black/2 md:inline"
+              className="hidden rounded-xl bg-white px-4 py-2 text-sm font-semibold text-(--primary) ring-1 ring-black/10 hover:bg-black/5 md:inline"
             >
               Back home
             </Link>
@@ -163,110 +184,49 @@ Notes: ${form.notes || "-"}
             className="rounded-3xl bg-white p-5 ring-1 ring-black/10 md:p-7"
           >
             <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="Your name"
-                placeholder="Revanth"
-                value={form.name}
-                onChange={(v) => update("name", v)}
-              />
-              <Field
-                label="Email"
-                placeholder="you@email.com"
-                value={form.email}
-                onChange={(v) => update("email", v)}
-              />
-              <Field
-                label="WhatsApp"
-                placeholder="+44..."
-                value={form.whatsapp}
-                onChange={(v) => update("whatsapp", v)}
-              />
-              <Field
-                label="From city"
-                placeholder="London"
-                value={form.fromCity}
-                onChange={(v) => update("fromCity", v)}
-              />
-              <Field
-                label="Destination"
-                placeholder="Paris / Dubai / Bali..."
-                value={form.destination}
-                onChange={(v) => update("destination", v)}
-              />
-              <Field
-                label="Dates"
-                placeholder="11 Jan – 14 Jan"
-                value={form.dates}
-                onChange={(v) => update("dates", v)}
-              />
-              <Field
-                label="Duration"
-                placeholder="3 nights"
-                value={form.duration}
-                onChange={(v) => update("duration", v)}
-              />
-              <Field
-                label="Budget"
-                placeholder="£800–£1200 per person"
-                value={form.budget}
-                onChange={(v) => update("budget", v)}
-              />
-              <Field
-                label="Travellers"
-                placeholder="2"
-                value={form.travelers}
-                onChange={(v) => update("travelers", v)}
-              />
+              <Field label="Your name" placeholder="Revanth" value={form.name} onChange={(v) => update("name", v)} />
+              <Field label="Email" placeholder="you@email.com" value={form.email} onChange={(v) => update("email", v)} />
+              <Field label="WhatsApp" placeholder="+44..." value={form.whatsapp} onChange={(v) => update("whatsapp", v)} />
+              <Field label="From city" placeholder="London" value={form.fromCity} onChange={(v) => update("fromCity", v)} />
+              <Field label="Destination" placeholder="Paris / Dubai / Bali..." value={form.destination} onChange={(v) => update("destination", v)} />
+              <Field label="Dates" placeholder="11 Jan – 14 Jan" value={form.dates} onChange={(v) => update("dates", v)} />
+              <Field label="Duration" placeholder="3 nights" value={form.duration} onChange={(v) => update("duration", v)} />
+              <Field label="Budget" placeholder="£800–£1200 per person" value={form.budget} onChange={(v) => update("budget", v)} />
+              <Field label="Travellers" placeholder="2" value={form.travelers} onChange={(v) => update("travelers", v)} />
             </div>
 
             <Divider />
 
             <div className="grid gap-5 md:grid-cols-2">
               <div>
-                <div className="text-sm font-semibold text-(--primary)">
-                  Travel style
-                </div>
-                <p className="mt-1 text-xs text-(--muted)">
-                  Pick what you want it to feel like.
-                </p>
+                <div className="text-sm font-semibold text-(--primary)">Travel style</div>
+                <p className="mt-1 text-xs text-(--muted)">Pick what you want it to feel like.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {STYLE_OPTIONS.map((opt) => {
-                    const active = form.style.includes(opt);
-                    return (
-                      <Chip
-                        key={opt}
-                        active={active}
-                        onClick={() => update("style", toggle(form.style, opt))}
-                      >
-                        {opt}
-                      </Chip>
-                    );
-                  })}
+                  {STYLE_OPTIONS.map((opt) => (
+                    <Chip
+                      key={opt}
+                      active={form.style.includes(opt)}
+                      onClick={() => update("style", toggle(form.style, opt))}
+                    >
+                      {opt}
+                    </Chip>
+                  ))}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm font-semibold text-(--primary)">
-                  Priorities
-                </div>
-                <p className="mt-1 text-xs text-(--muted)">
-                  What matters most for you.
-                </p>
+                <div className="text-sm font-semibold text-(--primary)">Priorities</div>
+                <p className="mt-1 text-xs text-(--muted)">What matters most for you.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {PRIORITY_OPTIONS.map((opt) => {
-                    const active = form.priorities.includes(opt);
-                    return (
-                      <Chip
-                        key={opt}
-                        active={active}
-                        onClick={() =>
-                          update("priorities", toggle(form.priorities, opt))
-                        }
-                      >
-                        {opt}
-                      </Chip>
-                    );
-                  })}
+                  {PRIORITY_OPTIONS.map((opt) => (
+                    <Chip
+                      key={opt}
+                      active={form.priorities.includes(opt)}
+                      onClick={() => update("priorities", toggle(form.priorities, opt))}
+                    >
+                      {opt}
+                    </Chip>
+                  ))}
                 </div>
               </div>
             </div>
@@ -274,9 +234,7 @@ Notes: ${form.notes || "-"}
             <Divider />
 
             <div>
-              <div className="text-sm font-semibold text-(--primary)">
-                Anything else?
-              </div>
+              <div className="text-sm font-semibold text-(--primary)">Anything else?</div>
               <p className="mt-1 text-xs text-(--muted)">
                 Hotels you like, places you want, or anything you want to avoid.
               </p>
@@ -290,10 +248,22 @@ Notes: ${form.notes || "-"}
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <button
-                onClick={sendToChat}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90"
+                onClick={sendToChatAndEmail}
+                className={cn(
+                  "inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90",
+                  sending && "opacity-75 pointer-events-none"
+                )}
               >
-                Send to AI concierge <ArrowRight className="h-4 w-4" />
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Send to AI concierge <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
 
               <button
@@ -301,7 +271,7 @@ Notes: ${form.notes || "-"}
                   navigator.clipboard?.writeText(summary);
                   setStatus("ok");
                 }}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-(--primary) ring-1 ring-black/10 hover:bg-black/2"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-(--primary) ring-1 ring-black/10 hover:bg-black/5"
               >
                 <Wand2 className="h-4 w-4" />
                 Copy summary
@@ -310,7 +280,14 @@ Notes: ${form.notes || "-"}
               {status === "ok" && (
                 <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
                   <CheckCircle2 className="h-4 w-4" />
-                  Ready. Chat opened or summary copied.
+                  Lead captured and chat opened.
+                </span>
+              )}
+
+              {status === "error" && (
+                <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Chat opened. Email sending failed (we’ll fix API).
                 </span>
               )}
             </div>
@@ -325,12 +302,8 @@ Notes: ${form.notes || "-"}
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-(--primary)">
-                  Live request preview
-                </div>
-                <p className="mt-1 text-xs text-(--muted)">
-                  This is what gets sent to you.
-                </p>
+                <div className="text-sm font-semibold text-(--primary)">Live request preview</div>
+                <p className="mt-1 text-xs text-(--muted)">This is what gets sent to you.</p>
               </div>
               <span className="rounded-full bg-(--light) px-3 py-1 text-xs font-semibold text-(--primary)">
                 Wayloft
@@ -338,21 +311,7 @@ Notes: ${form.notes || "-"}
             </div>
 
             <div className="mt-4 rounded-2xl bg-(--light) p-4 ring-1 ring-black/5">
-              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-(--text)">
-                {summary}
-              </pre>
-            </div>
-
-            <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-black/10">
-              <div className="text-sm font-semibold text-(--primary)">
-                Advanced flow (best UX)
-              </div>
-              <ul className="mt-2 space-y-2 text-xs text-(--muted)">
-                <li>1) User fills this form in 45 seconds</li>
-                <li>2) Click “Send to AI concierge”</li>
-                <li>3) Chat opens with the whole request prefilled</li>
-                <li>4) If you are offline, it still collects leads</li>
-              </ul>
+              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-(--text)">{summary}</pre>
             </div>
           </motion.aside>
         </div>
@@ -406,7 +365,7 @@ function Chip({
         "rounded-full px-3 py-2 text-xs font-semibold ring-1 transition",
         active
           ? "bg-(--primary) text-white ring-black/10"
-          : "bg-white text-(--primary) ring-black/10 hover:bg-black/2"
+          : "bg-white text-(--primary) ring-black/10 hover:bg-black/5"
       )}
     >
       {children}

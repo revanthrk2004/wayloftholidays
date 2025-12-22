@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-export const runtime = "nodejs"; // important (don’t use edge)
+export const runtime = "nodejs";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-type Body = {
-  message: string;
-};
+type Body = { message: string };
 
 function buildSystemPrompt() {
   return `
@@ -24,15 +22,17 @@ Never mention internal policies or code.
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body;
-
     const message = (body?.message || "").trim();
+
     if (!message) {
-      return NextResponse.json({ reply: "Tell me your destination, dates, and budget and I’ll plan it." });
+      return NextResponse.json({
+        reply: "Tell me your destination, dates, budget, and travellers and I’ll plan it.",
+      });
     }
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { reply: "OpenAI key missing. Add OPENAI_API_KEY in .env.local and Vercel." },
+        { reply: "Missing OPENAI_API_KEY. Add it in .env.local + Vercel env vars." },
         { status: 500 }
       );
     }
@@ -48,10 +48,10 @@ export async function POST(req: Request) {
 
     const reply =
       completion.choices?.[0]?.message?.content?.trim() ||
-      "I can help. Where are you going, when, and what’s your budget?";
+      "Where are you going, when, and what’s your budget?";
 
     return NextResponse.json({ reply });
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { reply: "Something went wrong. Try again in a moment." },
       { status: 500 }

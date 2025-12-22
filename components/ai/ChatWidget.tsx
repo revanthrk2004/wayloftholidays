@@ -29,7 +29,6 @@ export default function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    // allow Plan page to open chat + prefill message
     function onOpen(e: Event) {
       const ce = e as CustomEvent<{ prefill?: string }>;
       const prefill = ce?.detail?.prefill?.trim();
@@ -38,11 +37,11 @@ export default function ChatWidget() {
     }
 
     window.addEventListener("wayloft:chat_open", onOpen as EventListener);
-    return () => window.removeEventListener("wayloft:chat_open", onOpen as EventListener);
+    return () =>
+      window.removeEventListener("wayloft:chat_open", onOpen as EventListener);
   }, []);
 
   useEffect(() => {
-    // auto scroll
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
@@ -64,7 +63,9 @@ export default function ChatWidget() {
       });
 
       const data = (await res.json()) as { reply?: string };
-      const reply = (data.reply || "").trim() || "Tell me your destination, dates, and budget and I’ll plan it.";
+      const reply =
+        (data.reply || "").trim() ||
+        "Tell me your destination, dates, and budget and I’ll plan it.";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
     } catch {
@@ -81,7 +82,7 @@ export default function ChatWidget() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-50 grid h-12 w-12 place-items-center rounded-2xl bg-(--primary) text-white shadow-[0_18px_60px_rgba(11,60,111,0.28)] hover:opacity-95 active:opacity-90"
+        className="fixed bottom-5 right-5 z-50 grid h-12 w-12 place-items-center rounded-2xl bg-var(--primary) text-white shadow-[0_18px_60px_rgba(11,60,111,0.28)] hover:opacity-95 active:opacity-90"
         aria-label="Open chat"
       >
         <MessageCircle className="h-5 w-5" />
@@ -93,27 +94,30 @@ export default function ChatWidget() {
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
             className="fixed bottom-5 right-5 z-50 w-[92vw] max-w-sm overflow-hidden rounded-3xl bg-white ring-1 ring-black/10 shadow-[0_30px_90px_rgba(11,60,111,0.22)]"
           >
             <div className="flex items-center justify-between border-b border-black/5 bg-white/70 px-4 py-3 backdrop-blur-xl">
               <div className="leading-tight">
-                <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
-                <div className="text-xs text-(--muted)">{hint}</div>
+                <div className="text-sm font-semibold text-var(--primary)">
+                  Wayloft Concierge
+                </div>
+                <div className="text-xs text-var(--muted)">{hint}</div>
               </div>
+
               <button
                 onClick={() => setOpen(false)}
                 className="grid h-9 w-9 place-items-center rounded-xl hover:bg-black/5"
                 aria-label="Close chat"
               >
-                <X className="h-5 w-5 text-(--muted)" />
+                <X className="h-5 w-5 text-var(--muted)" />
               </button>
             </div>
 
             <div className="p-4">
               <div
                 ref={listRef}
-                className="h-300px space-y-3 overflow-auto rounded-2xl bg-(--light) p-3 ring-1 ring-black/5"
+                className="h-320px space-y-3 overflow-auto rounded-2xl bg-var(--light) p-3 ring-1 ring-black/5"
               >
                 {messages.map((m, idx) => (
                   <div
@@ -121,8 +125,8 @@ export default function ChatWidget() {
                     className={cn(
                       "max-w-[92%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
                       m.role === "user"
-                        ? "ml-auto bg-(--primary) text-white"
-                        : "mr-auto bg-white text-(--text) ring-1 ring-black/10"
+                        ? "ml-auto bg-var(--primary) text-white"
+                        : "mr-auto bg-white text-var(--text) ring-1 ring-black/10"
                     )}
                   >
                     {m.text}
@@ -130,7 +134,7 @@ export default function ChatWidget() {
                 ))}
 
                 {loading && (
-                  <div className="mr-auto inline-flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
+                  <div className="mr-auto inline-flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-sm text-var(--muted) ring-1 ring-black/10">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Thinking...
                   </div>
@@ -145,13 +149,15 @@ export default function ChatWidget() {
                     if (e.key === "Enter") send();
                   }}
                   placeholder="Eg: Maldives in Feb, 7 nights, £2k"
-                  className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
+                  className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-var(--muted) focus:ring-black/20"
                 />
+
                 <button
                   onClick={send}
                   className={cn(
-                    "grid h-11 w-11 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
-                    (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
+                    "grid h-11 w-11 place-items-center rounded-2xl bg-var(--primary) text-white hover:opacity-95 active:opacity-90",
+                    (text.trim().length === 0 || loading) &&
+                      "pointer-events-none opacity-60"
                   )}
                   aria-label="Send"
                 >
@@ -159,7 +165,7 @@ export default function ChatWidget() {
                 </button>
               </div>
 
-              <div className="mt-3 text-xs text-(--muted)">
+              <div className="mt-3 text-xs text-var(--muted)">
                 By sending, you agree we can contact you about your trip.
               </div>
             </div>
