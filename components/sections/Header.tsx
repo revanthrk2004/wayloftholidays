@@ -4,17 +4,25 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Search, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 export default function Header() {
   const { scrollY } = useScroll();
   const bg = useTransform(scrollY, [0, 120], ["rgba(255,255,255,0.72)", "rgba(255,255,255,0.88)"]);
   const border = useTransform(scrollY, [0, 120], ["rgba(15,23,42,0.06)", "rgba(15,23,42,0.10)"]);
 
+  const [q, setQ] = useState("");
+
+  function openConcierge() {
+    const msg =
+      q.trim().length > 0
+        ? `Hi Wayloft, I want help planning this trip: ${q.trim()}`
+        : "Hi Wayloft, I want help planning a trip. My destination, dates, and budget are:";
+    window.dispatchEvent(new CustomEvent("wayloft:chat_open", { detail: { prefill: msg } }));
+  }
+
   return (
-    <motion.header
-      style={{ backgroundColor: bg, borderColor: border }}
-      className="sticky top-0 z-50 border-b backdrop-blur-xl"
-    >
+    <motion.header style={{ backgroundColor: bg, borderColor: border }} className="sticky top-0 z-50 border-b backdrop-blur-xl">
       <Container className="flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-(--light) ring-1 ring-black/5">
@@ -39,9 +47,12 @@ export default function Header() {
             #travelwithWayloft
           </span>
 
-          <button className="rounded-xl bg-(--primary) px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90">
+          <Link
+            href="/plan"
+            className="rounded-xl bg-(--primary) px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90"
+          >
             Plan my trip
-          </button>
+          </Link>
         </div>
       </Container>
 
@@ -51,7 +62,7 @@ export default function Header() {
           <div className="flex items-center justify-between gap-3">
             <div className="hidden text-xs text-(--muted) md:flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-(--secondary)" />
-              <span>Tell us your travel plans — we’ll design the perfect trip.</span>
+              <span>Tell us your travel plans and we’ll design the perfect trip.</span>
             </div>
 
             <div className="w-full md:max-w-3xl">
@@ -61,11 +72,17 @@ export default function Header() {
                 </div>
 
                 <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && openConcierge()}
                   className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-(--muted)"
                   placeholder="Tell us your travel plans"
                 />
 
-                <button className="h-12 px-6 bg-(--primary) text-white text-sm font-semibold hover:opacity-95 active:opacity-90">
+                <button
+                  onClick={openConcierge}
+                  className="h-12 px-6 bg-(--primary) text-white text-sm font-semibold hover:opacity-95 active:opacity-90"
+                >
                   SEARCH
                 </button>
               </div>
