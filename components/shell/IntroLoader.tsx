@@ -29,9 +29,9 @@ export default function IntroLoader({ show, onDone }: Props) {
           aria-label="Intro loader"
         >
           {/* soft grid + vignette */}
-          <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:linear-gradient(to_right,rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.14)_1px,transparent_1px)] bg-size-[28px_28px]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.18] bg-[linear-gradient(to_right,rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.14)_1px,transparent_1px)] bg-size-[28px_28px]" />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(47,128,193,0.45),transparent_58%)]" />
-          <div className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(circle,black_58%,transparent_74%)] bg-black/25" />
+          <div className="pointer-events-none absolute inset-0 mask-[radial-gradient(circle,black_58%,transparent_74%)] bg-black/25" />
 
           <div className="relative mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6">
             <div className="relative w-full max-w-xl">
