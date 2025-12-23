@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
+import { CheckCircle2, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import { cn } from "@/components/ui/cn";
@@ -54,19 +54,16 @@ const cardIn = {
   },
 };
 
-async function sendEmailLead(content: string) {
+async function sendLead(payload: any) {
   const res = await fetch("/api/lead", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      subject: "New Wayloft Trip Request",
-      content,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(t || "Lead email failed");
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Lead email failed");
   }
 }
 
@@ -86,8 +83,9 @@ export default function PlanClient() {
     notes: "",
   });
 
-  const [status, setStatus] = useState<"idle" | "ok">("idle");
+  const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
   const [sending, setSending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const summary = useMemo(() => {
     const style = form.style.length ? form.style.join(", ") : "Any";
@@ -118,20 +116,30 @@ Notes: ${form.notes || "-"}
     setForm((p) => ({ ...p, [key]: val }));
   }
 
-  async function sendToChatAndEmail() {
-    // Open chat + prefill
-    window.dispatchEvent(
-      new CustomEvent("wayloft:chat_open", { detail: { prefill: summary } })
-    );
+  async function onSend() {
+    setStatus("idle");
+    setErrorMsg("");
 
-    // Email you the lead
+    // (Optional) light validation
+    if (!form.email.trim() || !form.destination.trim()) {
+      setStatus("error");
+      setErrorMsg("Please add at least your email and destination.");
+      return;
+    }
+
     try {
       setSending(true);
-      await sendEmailLead(summary);
+
+      // IMPORTANT: This shape matches your /api/lead route.ts
+      await sendLead({
+        ...form,
+        summary, // route.ts uses body.summary first (perfect)
+      });
+
       setStatus("ok");
-    } catch {
-      // still fine because chat opened
-      setStatus("ok");
+    } catch (e) {
+      setStatus("error");
+      setErrorMsg(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setSending(false);
     }
@@ -141,8 +149,8 @@ Notes: ${form.notes || "-"}
     <main className="relative overflow-hidden">
       {/* background */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-(--light) blur-3xl" />
-        <div className="absolute -bottom-72 right-[-140px] h-[560px] w-[560px] rounded-full bg-(--light) blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-520px w-520px -translate-x-1/2 rounded-full bg-(--light) blur-3xl" />
+        <div className="absolute -bottom-72 -right-36 h-560px w-560px rounded-full bg-(--light) blur-3xl" />
         <div className="absolute inset-0 opacity-[0.55] bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.08)_1px,transparent_0)] bg-size-[18px_18px]" />
       </div>
 
@@ -161,7 +169,7 @@ Notes: ${form.notes || "-"}
                 Plan your trip
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--muted) md:text-base">
-                Give us your dates, budget and vibe. We will craft a premium itinerary around you, not a generic package.
+                Fill this once and we will receive it instantly by email. We will contact you as soon as possible.
               </p>
             </div>
 
@@ -238,43 +246,45 @@ Notes: ${form.notes || "-"}
               <textarea
                 value={form.notes}
                 onChange={(e) => update("notes", e.target.value)}
-                className="mt-3 min-h-[120px] w-full resize-none rounded-2xl bg-white px-4 py-3 text-sm text-(--text) ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-(--secondary)"
+                className="mt-3 min-h-120px w-full resize-none rounded-2xl bg-white px-4 py-3 text-sm text-(--text) ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-(--secondary)"
                 placeholder="Example: Eiffel Tower dinner view, no early mornings, must have aesthetic cafes..."
               />
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <button
-                onClick={sendToChatAndEmail}
+                onClick={onSend}
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90",
+                  "inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90",
                   sending && "opacity-70 pointer-events-none"
                 )}
               >
-                {sending ? "Sending..." : "Send to AI concierge"} <ArrowRight className="h-4 w-4" />
-              </button>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard?.writeText(summary);
-                  setStatus("ok");
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-(--primary) ring-1 ring-black/10 hover:bg-black/5"
-              >
-                <Wand2 className="h-4 w-4" />
-                Copy summary
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send request"
+                )}
               </button>
 
               {status === "ok" && (
                 <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
                   <CheckCircle2 className="h-4 w-4" />
-                  Sent. Chat opened and lead captured.
+                  Sent. We received your request by email.
+                </span>
+              )}
+
+              {status === "error" && (
+                <span className="text-xs font-semibold text-red-600">
+                  {errorMsg || "Something went wrong."}
                 </span>
               )}
             </div>
           </motion.section>
 
-          {/* live preview */}
+          {/* preview */}
           <motion.aside
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -283,8 +293,8 @@ Notes: ${form.notes || "-"}
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-(--primary)">Live request preview</div>
-                <p className="mt-1 text-xs text-(--muted)">This is what gets sent to you.</p>
+                <div className="text-sm font-semibold text-(--primary)">Preview</div>
+                <p className="mt-1 text-xs text-(--muted)">This is exactly what gets emailed to you.</p>
               </div>
               <span className="rounded-full bg-(--light) px-3 py-1 text-xs font-semibold text-(--primary)">
                 Wayloft
@@ -295,16 +305,6 @@ Notes: ${form.notes || "-"}
               <pre className="whitespace-pre-wrap text-xs leading-relaxed text-(--text)">
                 {summary}
               </pre>
-            </div>
-
-            <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-black/10">
-              <div className="text-sm font-semibold text-(--primary)">Advanced flow (best UX)</div>
-              <ul className="mt-2 space-y-2 text-xs text-(--muted)">
-                <li>1) User fills this form in 45 seconds</li>
-                <li>2) Click “Send to AI concierge”</li>
-                <li>3) Chat opens with the whole request prefilled</li>
-                <li>4) You also receive the lead email instantly</li>
-              </ul>
             </div>
           </motion.aside>
         </div>
