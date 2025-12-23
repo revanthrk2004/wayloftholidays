@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, Send, AlertTriangle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import { cn } from "@/components/ui/cn";
@@ -54,23 +54,25 @@ const cardIn = {
   },
 };
 
-async function sendLeadEmail(payload: any) {
-  const res = await fetch("/api/lead", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+function buildSummary(form: PlanForm) {
+  const style = form.style.length ? form.style.join(", ") : "Any";
+  const pri = form.priorities.length ? form.priorities.join(", ") : "Any";
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    const msg =
-      data?.error ||
-      (await res.text().catch(() => "")) ||
-      "Lead email failed";
-    throw new Error(msg);
-  }
+  return `Plan request for Wayloft Holidays:
+Name: ${form.name || "-"}
+Email: ${form.email || "-"}
+WhatsApp: ${form.whatsapp || "-"}
+From: ${form.fromCity || "-"}
+Destination: ${form.destination || "-"}
+Dates: ${form.dates || "-"}
+Duration: ${form.duration || "-"}
+Budget: ${form.budget || "-"}
+Travellers: ${form.travelers || "-"}
+Style: ${style}
+Priorities: ${pri}
+Notes: ${form.notes || "-"}
 
-  return res.json().catch(() => ({ ok: true }));
+#travelwithWayloft`;
 }
 
 export default function PlanClient() {
@@ -90,28 +92,10 @@ export default function PlanClient() {
   });
 
   const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
+  const [state, setState] = useState<"idle" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  const summary = useMemo(() => {
-    const style = form.style.length ? form.style.join(", ") : "Any";
-    const pri = form.priorities.length ? form.priorities.join(", ") : "Any";
-    return `Plan request for Wayloft Holidays:
-Name: ${form.name || "-"}
-Email: ${form.email || "-"}
-WhatsApp: ${form.whatsapp || "-"}
-From: ${form.fromCity || "-"}
-Destination: ${form.destination || "-"}
-Dates: ${form.dates || "-"}
-Duration: ${form.duration || "-"}
-Budget: ${form.budget || "-"}
-Travellers: ${form.travelers || "-"}
-Style: ${style}
-Priorities: ${pri}
-Notes: ${form.notes || "-"}
-
-#travelwithWayloft`;
-  }, [form]);
+  const summary = useMemo(() => buildSummary(form), [form]);
 
   function toggle(list: string[], value: string) {
     if (list.includes(value)) return list.filter((x) => x !== value);
@@ -120,36 +104,50 @@ Notes: ${form.notes || "-"}
 
   function update<K extends keyof PlanForm>(key: K, val: PlanForm[K]) {
     setForm((p) => ({ ...p, [key]: val }));
+    if (state !== "idle") setState("idle");
+    if (errorMsg) setErrorMsg("");
   }
 
-  async function onSend() {
-    setStatus("idle");
+  async function sendRequest() {
+    if (sending) return;
+
+    // lightweight “required” checks (only the essentials)
+    if (!form.name.trim() || !form.email.trim() || !form.destination.trim()) {
+      setState("error");
+      setErrorMsg("Please fill at least: Name, Email, Destination.");
+      return;
+    }
+
+    setSending(true);
+    setState("idle");
     setErrorMsg("");
 
-    // tiny validation (keeps it smooth, not annoying)
-    if (!form.email.trim()) {
-      setStatus("error");
-      setErrorMsg("Please add your email so we can contact you.");
-      return;
-    }
-    if (!form.destination.trim()) {
-      setStatus("error");
-      setErrorMsg("Please add your destination.");
-      return;
-    }
-
-    const payload = {
-      ...form,
-      summary, // your API supports body.summary too
-    };
-
     try {
-      setSending(true);
-      await sendLeadEmail(payload);
-      setStatus("ok");
-    } catch (e: any) {
-      setStatus("error");
-      setErrorMsg(e?.message || "Something went wrong sending your request.");
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          summary, // server can use this directly too
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true }
+        | { ok: false; error?: string }
+        | null;
+
+      if (!res.ok || !data || (data as any).ok === false) {
+        const msg =
+          (data as any)?.error ||
+          "Email failed. Check your Resend domain/from address settings.";
+        throw new Error(msg);
+      }
+
+      setState("sent");
+    } catch (e) {
+      setState("error");
+      setErrorMsg(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setSending(false);
     }
@@ -170,7 +168,7 @@ Notes: ${form.notes || "-"}
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-(--primary) ring-1 ring-black/10">
                 <Sparkles className="h-4 w-4" />
-                <span>Wayloft Trip Builder</span>
+                <span>Wayloft Trip Request</span>
                 <span className="h-1 w-1 rounded-full bg-(--secondary)" />
                 <span>#travelwithWayloft</span>
               </div>
@@ -179,7 +177,7 @@ Notes: ${form.notes || "-"}
                 Plan your trip
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--muted) md:text-base">
-                Give us your dates, budget and vibe. We will craft a premium itinerary around you, not a generic package.
+                Fill this once and we’ll receive your request instantly by email.
               </p>
             </div>
 
@@ -192,132 +190,104 @@ Notes: ${form.notes || "-"}
           </div>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          {/* form */}
-          <motion.section
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as any }}
-            className="rounded-3xl bg-white p-5 ring-1 ring-black/10 md:p-7"
-          >
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Your name" placeholder="Revanth" value={form.name} onChange={(v) => update("name", v)} />
-              <Field label="Email" placeholder="you@email.com" value={form.email} onChange={(v) => update("email", v)} />
-              <Field label="WhatsApp" placeholder="+44..." value={form.whatsapp} onChange={(v) => update("whatsapp", v)} />
-              <Field label="From city" placeholder="London" value={form.fromCity} onChange={(v) => update("fromCity", v)} />
-              <Field label="Destination" placeholder="Paris / Dubai / Bali..." value={form.destination} onChange={(v) => update("destination", v)} />
-              <Field label="Dates" placeholder="11 Jan – 14 Jan" value={form.dates} onChange={(v) => update("dates", v)} />
-              <Field label="Duration" placeholder="3 nights" value={form.duration} onChange={(v) => update("duration", v)} />
-              <Field label="Budget" placeholder="£800–£1200 per person" value={form.budget} onChange={(v) => update("budget", v)} />
-              <Field label="Travellers" placeholder="2" value={form.travelers} onChange={(v) => update("travelers", v)} />
-            </div>
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as any }}
+          className="mx-auto max-w-3xl rounded-3xl bg-white p-5 ring-1 ring-black/10 md:p-7"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Your name" placeholder="Revanth" value={form.name} onChange={(v) => update("name", v)} />
+            <Field label="Email" placeholder="you@email.com" value={form.email} onChange={(v) => update("email", v)} />
+            <Field label="WhatsApp" placeholder="+44..." value={form.whatsapp} onChange={(v) => update("whatsapp", v)} />
+            <Field label="From city" placeholder="London" value={form.fromCity} onChange={(v) => update("fromCity", v)} />
+            <Field label="Destination" placeholder="Paris / Dubai / Bali..." value={form.destination} onChange={(v) => update("destination", v)} />
+            <Field label="Dates" placeholder="11 Jan – 14 Jan" value={form.dates} onChange={(v) => update("dates", v)} />
+            <Field label="Duration" placeholder="3 nights" value={form.duration} onChange={(v) => update("duration", v)} />
+            <Field label="Budget" placeholder="£800–£1200 per person" value={form.budget} onChange={(v) => update("budget", v)} />
+            <Field label="Travellers" placeholder="2" value={form.travelers} onChange={(v) => update("travelers", v)} />
+          </div>
 
-            <Divider />
+          <Divider />
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <div className="text-sm font-semibold text-(--primary)">Travel style</div>
-                <p className="mt-1 text-xs text-(--muted)">Pick what you want it to feel like.</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {STYLE_OPTIONS.map((opt) => {
-                    const active = form.style.includes(opt);
-                    return (
-                      <Chip key={opt} active={active} onClick={() => update("style", toggle(form.style, opt))}>
-                        {opt}
-                      </Chip>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-(--primary)">Priorities</div>
-                <p className="mt-1 text-xs text-(--muted)">What matters most for you.</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {PRIORITY_OPTIONS.map((opt) => {
-                    const active = form.priorities.includes(opt);
-                    return (
-                      <Chip key={opt} active={active} onClick={() => update("priorities", toggle(form.priorities, opt))}>
-                        {opt}
-                      </Chip>
-                    );
-                  })}
-                </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-semibold text-(--primary)">Travel style</div>
+              <p className="mt-1 text-xs text-(--muted)">Pick what you want it to feel like.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {STYLE_OPTIONS.map((opt) => {
+                  const active = form.style.includes(opt);
+                  return (
+                    <Chip key={opt} active={active} onClick={() => update("style", toggle(form.style, opt))}>
+                      {opt}
+                    </Chip>
+                  );
+                })}
               </div>
             </div>
-
-            <Divider />
 
             <div>
-              <div className="text-sm font-semibold text-(--primary)">Anything else?</div>
-              <p className="mt-1 text-xs text-(--muted)">
-                Hotels you like, places you want, or anything you want to avoid.
-              </p>
-              <textarea
-                value={form.notes}
-                onChange={(e) => update("notes", e.target.value)}
-                className="mt-3 min-h-120px w-full resize-none rounded-2xl bg-white px-4 py-3 text-sm text-(--text) ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-(--secondary)"
-                placeholder="Example: Eiffel Tower dinner view, no early mornings, must have aesthetic cafes..."
-              />
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                onClick={onSend}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90",
-                  sending && "opacity-70 pointer-events-none"
-                )}
-              >
-                {sending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Send request"
-                )}
-              </button>
-
-              {status === "ok" && (
-                <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Sent. You’ll receive this in your email.
-                </span>
-              )}
-
-              {status === "error" && (
-                <span className="text-xs font-semibold text-red-600">
-                  {errorMsg}
-                </span>
-              )}
-            </div>
-          </motion.section>
-
-          {/* live preview */}
-          <motion.aside
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] as any }}
-            className="rounded-3xl bg-white p-5 ring-1 ring-black/10 md:p-7"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-(--primary)">Live request preview</div>
-                <p className="mt-1 text-xs text-(--muted)">This is exactly what gets emailed to you.</p>
+              <div className="text-sm font-semibold text-(--primary)">Priorities</div>
+              <p className="mt-1 text-xs text-(--muted)">What matters most for you.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {PRIORITY_OPTIONS.map((opt) => {
+                  const active = form.priorities.includes(opt);
+                  return (
+                    <Chip key={opt} active={active} onClick={() => update("priorities", toggle(form.priorities, opt))}>
+                      {opt}
+                    </Chip>
+                  );
+                })}
               </div>
-              <span className="rounded-full bg-(--light) px-3 py-1 text-xs font-semibold text-(--primary)">
-                Wayloft
-              </span>
             </div>
+          </div>
 
-            <div className="mt-4 rounded-2xl bg-(--light) p-4 ring-1 ring-black/5">
-              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-(--text)">
-                {summary}
-              </pre>
-            </div>
-          </motion.aside>
-        </div>
+          <Divider />
+
+          <div>
+            <div className="text-sm font-semibold text-(--primary)">Anything else?</div>
+            <p className="mt-1 text-xs text-(--muted)">
+              Hotels you like, places you want, or anything you want to avoid.
+            </p>
+            <textarea
+              value={form.notes}
+              onChange={(e) => update("notes", e.target.value)}
+              className="mt-3 min-h-120px w-full resize-none rounded-2xl bg-white px-4 py-3 text-sm text-(--text) ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-(--secondary)"
+              placeholder="Example: Eiffel Tower dinner view, no early mornings, must have aesthetic cafes..."
+            />
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              onClick={sendRequest}
+              className={cn(
+                "inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90",
+                sending && "opacity-70 pointer-events-none"
+              )}
+            >
+              <Send className="h-4 w-4" />
+              {sending ? "Sending..." : "Send request"}
+            </button>
+
+            {state === "sent" && (
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
+                <CheckCircle2 className="h-4 w-4" />
+                Sent. You’ll receive this in your email.
+              </span>
+            )}
+
+            {state === "error" && (
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-red-600">
+                <AlertTriangle className="h-4 w-4" />
+                {errorMsg || "Something went wrong."}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 text-xs text-(--muted)">
+            By sending, you agree we can contact you about your trip.
+          </div>
+        </motion.section>
       </Container>
     </main>
   );
