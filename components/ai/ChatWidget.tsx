@@ -136,24 +136,29 @@ export default function ChatWidget() {
                 className="h-80 space-y-3 overflow-y-auto rounded-2xl bg-(--light) p-3 ring-1 ring-black/5"
               >
                 {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "max-w-[92%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
-                      m.role === "user"
-                        ? "ml-auto bg-(--primary) text-white"
-                        : "mr-auto bg-white text-(--text) ring-1 ring-black/10"
-                    )}
-                  >
-                    {m.text}
-                  </div>
+<div
+  key={idx}
+  className={cn(
+    // bubble base
+    "inline-block w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm leading-relaxed",
+    m.role === "user"
+      ? "ml-auto bg-(--primary) text-white"
+      : "mr-auto bg-white text-(--text) ring-1 ring-black/10"
+  )}
+>
+  {m.text}
+</div>
+
                 ))}
 
                 {loading && (
-                  <div className="mr-auto inline-flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Thinking...
-                  </div>
+                  <div className="mr-auto inline-block w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
+  <span className="inline-flex items-center gap-2">
+    <Loader2 className="h-4 w-4 animate-spin" />
+    Thinking...
+  </span>
+</div>
+
                 )}
               </div>
 
@@ -170,7 +175,7 @@ export default function ChatWidget() {
                 <button
                   onClick={send}
                   className={cn(
-                    "grid h-11 w-11 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
+                    "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
                     (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
                   )}
                   aria-label="Send"
