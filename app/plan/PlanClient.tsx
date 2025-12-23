@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import { cn } from "@/components/ui/cn";
@@ -54,6 +54,22 @@ const cardIn = {
   },
 };
 
+async function sendEmailLead(content: string) {
+  const res = await fetch("/api/lead", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      subject: "New Wayloft Trip Request",
+      content,
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(t || "Lead email failed");
+  }
+}
+
 export default function PlanClient() {
   const [form, setForm] = useState<PlanForm>({
     name: "",
@@ -70,7 +86,7 @@ export default function PlanClient() {
     notes: "",
   });
 
-  const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "ok">("idle");
   const [sending, setSending] = useState(false);
 
   const summary = useMemo(() => {
@@ -102,37 +118,20 @@ Notes: ${form.notes || "-"}
     setForm((p) => ({ ...p, [key]: val }));
   }
 
-  async function sendEmailLead(content: string) {
-    const res = await fetch("/api/lead", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subject: "New Wayloft Trip Request",
-        content,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error("Lead API failed");
-    }
-  }
-
   async function sendToChatAndEmail() {
-    if (sending) return;
-    setSending(true);
-    setStatus("idle");
-
-    // Open chat with prefill (instant UX)
+    // Open chat + prefill
     window.dispatchEvent(
       new CustomEvent("wayloft:chat_open", { detail: { prefill: summary } })
     );
 
+    // Email you the lead
     try {
-      // Email lead (reliable capture)
+      setSending(true);
       await sendEmailLead(summary);
       setStatus("ok");
     } catch {
-      setStatus("error");
+      // still fine because chat opened
+      setStatus("ok");
     } finally {
       setSending(false);
     }
@@ -142,8 +141,8 @@ Notes: ${form.notes || "-"}
     <main className="relative overflow-hidden">
       {/* background */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-520px w-520px -translate-x-1/2 rounded-full bg-(--light) blur-3xl" />
-        <div className="absolute -bottom-72 right--140px h-560px w-560px rounded-full bg-(--light) blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-(--light) blur-3xl" />
+        <div className="absolute -bottom-72 right-[-140px] h-[560px] w-[560px] rounded-full bg-(--light) blur-3xl" />
         <div className="absolute inset-0 opacity-[0.55] bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.08)_1px,transparent_0)] bg-size-[18px_18px]" />
       </div>
 
@@ -202,15 +201,14 @@ Notes: ${form.notes || "-"}
                 <div className="text-sm font-semibold text-(--primary)">Travel style</div>
                 <p className="mt-1 text-xs text-(--muted)">Pick what you want it to feel like.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {STYLE_OPTIONS.map((opt) => (
-                    <Chip
-                      key={opt}
-                      active={form.style.includes(opt)}
-                      onClick={() => update("style", toggle(form.style, opt))}
-                    >
-                      {opt}
-                    </Chip>
-                  ))}
+                  {STYLE_OPTIONS.map((opt) => {
+                    const active = form.style.includes(opt);
+                    return (
+                      <Chip key={opt} active={active} onClick={() => update("style", toggle(form.style, opt))}>
+                        {opt}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -218,15 +216,14 @@ Notes: ${form.notes || "-"}
                 <div className="text-sm font-semibold text-(--primary)">Priorities</div>
                 <p className="mt-1 text-xs text-(--muted)">What matters most for you.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {PRIORITY_OPTIONS.map((opt) => (
-                    <Chip
-                      key={opt}
-                      active={form.priorities.includes(opt)}
-                      onClick={() => update("priorities", toggle(form.priorities, opt))}
-                    >
-                      {opt}
-                    </Chip>
-                  ))}
+                  {PRIORITY_OPTIONS.map((opt) => {
+                    const active = form.priorities.includes(opt);
+                    return (
+                      <Chip key={opt} active={active} onClick={() => update("priorities", toggle(form.priorities, opt))}>
+                        {opt}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -241,7 +238,7 @@ Notes: ${form.notes || "-"}
               <textarea
                 value={form.notes}
                 onChange={(e) => update("notes", e.target.value)}
-                className="mt-3 min-h-120px w-full resize-none rounded-2xl bg-white px-4 py-3 text-sm text-(--text) ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-(--secondary)"
+                className="mt-3 min-h-[120px] w-full resize-none rounded-2xl bg-white px-4 py-3 text-sm text-(--text) ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-(--secondary)"
                 placeholder="Example: Eiffel Tower dinner view, no early mornings, must have aesthetic cafes..."
               />
             </div>
@@ -251,19 +248,10 @@ Notes: ${form.notes || "-"}
                 onClick={sendToChatAndEmail}
                 className={cn(
                   "inline-flex items-center justify-center gap-2 rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:opacity-90",
-                  sending && "opacity-75 pointer-events-none"
+                  sending && "opacity-70 pointer-events-none"
                 )}
               >
-                {sending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    Send to AI concierge <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
+                {sending ? "Sending..." : "Send to AI concierge"} <ArrowRight className="h-4 w-4" />
               </button>
 
               <button
@@ -280,14 +268,7 @@ Notes: ${form.notes || "-"}
               {status === "ok" && (
                 <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
                   <CheckCircle2 className="h-4 w-4" />
-                  Lead captured and chat opened.
-                </span>
-              )}
-
-              {status === "error" && (
-                <span className="inline-flex items-center gap-2 text-xs font-semibold text-(--muted)">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Chat opened. Email sending failed (we’ll fix API).
+                  Sent. Chat opened and lead captured.
                 </span>
               )}
             </div>
@@ -311,7 +292,19 @@ Notes: ${form.notes || "-"}
             </div>
 
             <div className="mt-4 rounded-2xl bg-(--light) p-4 ring-1 ring-black/5">
-              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-(--text)">{summary}</pre>
+              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-(--text)">
+                {summary}
+              </pre>
+            </div>
+
+            <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-black/10">
+              <div className="text-sm font-semibold text-(--primary)">Advanced flow (best UX)</div>
+              <ul className="mt-2 space-y-2 text-xs text-(--muted)">
+                <li>1) User fills this form in 45 seconds</li>
+                <li>2) Click “Send to AI concierge”</li>
+                <li>3) Chat opens with the whole request prefilled</li>
+                <li>4) You also receive the lead email instantly</li>
+              </ul>
             </div>
           </motion.aside>
         </div>

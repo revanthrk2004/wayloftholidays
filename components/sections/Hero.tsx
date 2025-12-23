@@ -11,12 +11,20 @@ const ease = [0.16, 1, 0.3, 1] as const;
 
 const containerV = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+  },
 };
 
 const itemV = {
   hidden: { opacity: 0, y: 14, filter: "blur(8px)" },
-  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.8, ease } },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.8, ease },
+  },
 };
 
 export default function Hero() {
@@ -39,7 +47,7 @@ export default function Hero() {
 
         {/* Darken + soften for readability */}
         <div className="absolute inset-0 bg-black/45" />
-        <div className="absolute inset-0 bg-[gradient-to-b] from-black/50 via-black/35 to-black/65" />
+        <div className="absolute inset-0 [bg-gradient-to-b] from-black/50 via-black/35 to-black/65" />
 
         {/* subtle grid */}
         <div className="absolute inset-0 opacity-[0.18] bg-[linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-size-[56px_56px]" />
@@ -110,24 +118,33 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* RIGHT GLASS CARD (optional “premium bullets”) */}
-          <motion.div variants={itemV} className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/15 backdrop-blur-xl">
+          {/* RIGHT GLASS CARD */}
+          <motion.div
+            variants={itemV}
+            className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/15 backdrop-blur-xl"
+          >
             <div className="text-sm font-semibold text-white">Why Wayloft feels different</div>
 
             <div className="mt-4 space-y-3 text-sm text-white/80">
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
                 <div className="font-semibold text-white">Premium planning</div>
-                <div className="text-white/75 text-xs mt-1">Not a generic package site. Built around your taste.</div>
+                <div className="mt-1 text-xs text-white/75">
+                  Not a generic package site. Built around your taste.
+                </div>
               </div>
 
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
                 <div className="font-semibold text-white">Safety-first suggestions</div>
-                <div className="text-white/75 text-xs mt-1">We design around comfort, logistics, and your priorities.</div>
+                <div className="mt-1 text-xs text-white/75">
+                  Designed around comfort, logistics, and your priorities.
+                </div>
               </div>
 
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
                 <div className="font-semibold text-white">Best next step</div>
-                <div className="text-white/75 text-xs mt-1">Click Start planning and we’ll prefill your request into the concierge.</div>
+                <div className="mt-1 text-xs text-white/75">
+                  Click Start planning and we’ll prefill your request into the concierge.
+                </div>
               </div>
             </div>
           </motion.div>

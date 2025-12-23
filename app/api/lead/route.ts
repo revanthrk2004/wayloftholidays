@@ -3,42 +3,49 @@ import { Resend } from "resend";
 
 export const runtime = "nodejs";
 
-type Body = {
-  subject?: string;
-  content?: string;
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Body;
-    const subject = (body.subject || "New Wayloft Lead").trim();
-    const content = (body.content || "").trim();
+    const body = await req.json();
 
-    if (!content) {
-      return NextResponse.json({ ok: false, error: "Missing content" }, { status: 400 });
-    }
+    const to = process.env.LEADS_TO_EMAIL;
+    if (!to) throw new Error("LEADS_TO_EMAIL missing");
 
-    const apiKey = process.env.RESEND_API_KEY;
-    const toEmail = process.env.LEADS_TO_EMAIL;
+    const subject = `New Wayloft Trip Request${body.destination ? ` — ${body.destination}` : ""}`;
 
-    if (!apiKey || !toEmail) {
-      return NextResponse.json(
-        { ok: false, error: "Missing RESEND_API_KEY or LEADS_TO_EMAIL" },
-        { status: 500 }
-      );
-    }
+    const text =
+      body.summary ||
+      `New Wayloft Trip Request
 
-    const resend = new Resend(apiKey);
+Name: ${body.name || "-"}
+Email: ${body.email || "-"}
+WhatsApp: ${body.whatsapp || "-"}
+From: ${body.fromCity || "-"}
+Destination: ${body.destination || "-"}
+Dates: ${body.dates || "-"}
+Duration: ${body.duration || "-"}
+Budget: ${body.budget || "-"}
+Travellers: ${body.travelers || "-"}
+Style: ${(body.style || []).join(", ") || "-"}
+Priorities: ${(body.priorities || []).join(", ") || "-"}
+Notes: ${body.notes || "-"}
+
+#travelwithWayloft`;
 
     await resend.emails.send({
-      from: "Wayloft Holidays <onboarding@resend.dev>",
-      to: [toEmail],
+      from: "Wayloft Holidays <onboarding@resend.dev>", // works immediately
+      to,
+      replyTo: body.email || to,
       subject,
-      text: content,
+      text,
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }
