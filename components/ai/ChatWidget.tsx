@@ -136,23 +136,26 @@ export default function ChatWidget() {
                 className="h-80 space-y-3 overflow-y-auto rounded-2xl bg-(--light) p-3 ring-1 ring-black/5"
               >
                 {messages.map((m, idx) => (
-<div
-  key={idx}
-  className={cn(
-    // bubble base
-    "inline-block w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm leading-relaxed",
-    m.role === "user"
-      ? "ml-auto bg-(--primary) text-white"
-      : "mr-auto bg-white text-(--text) ring-1 ring-black/10"
-  )}
->
-  {m.text}
-</div>
-
+                <div
+                    key={idx}
+                    className={cn("flex w-full", m.role === "user" ? "justify-end" : "justify-start")}
+                >
+                    <div
+                    className={cn(
+                        "w-fit max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap",
+                        m.role === "user"
+                        ? "bg-(--primary) text-white"
+                        : "bg-white text-(--text) ring-1 ring-black/10"
+                    )}
+                    >
+                    {m.text}
+                    </div>
+                </div>
                 ))}
 
+
                 {loading && (
-                  <div className="mr-auto inline-block w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
+                  <div className="mr-auto inline-block w-fit max-w-[85%] whitespace-pre-wrap wrap-break-word rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
   <span className="inline-flex items-center gap-2">
     <Loader2 className="h-4 w-4 animate-spin" />
     Thinking...
@@ -160,7 +163,7 @@ export default function ChatWidget() {
 </div>
 
                 )}
-              </div>
+              </div>hi
 
               <div className="mt-3 flex gap-2">
                 <input
