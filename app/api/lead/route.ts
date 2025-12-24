@@ -17,13 +17,12 @@ export async function POST(req: Request) {
     const to = process.env.LEADS_TO_EMAIL;
     if (!to) throw new Error("LEADS_TO_EMAIL missing");
 
-    // IMPORTANT: must be your verified domain email (NOT onboarding@resend.dev)
     const from =
-      process.env.LEADS_FROM_EMAIL || "Wayloft Holidays <info@wayloftholidays.com>";
+      process.env.LEADS_FROM_EMAIL ||
+      "Wayloft Holidays <info@wayloftholidays.com>";
 
     const destination = (body?.destination || "").toString().trim();
-    const subject =
-      `New Wayloft Trip Request` + (destination ? ` — ${destination}` : "");
+    const subject = `New Wayloft Trip Request${destination ? ` — ${destination}` : ""}`;
 
     const text =
       body?.summary ||
@@ -45,7 +44,7 @@ Notes: ${body?.notes || "-"}
 
     const replyTo = isEmail(body?.email) ? body.email.trim() : undefined;
 
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from,
       to,
       subject,
@@ -53,7 +52,7 @@ Notes: ${body?.notes || "-"}
       ...(replyTo ? { replyTo } : {}),
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, id: (result as any)?.id || null });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "Unknown error" },

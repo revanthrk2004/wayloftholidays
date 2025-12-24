@@ -3,13 +3,12 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Lock } from "lucide-react";
 import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
 function makeSessionId() {
-  // simple stable id per tab
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `sess_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
@@ -18,12 +17,14 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [handoff, setHandoff] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
       text:
-        "Hi, I’m Wayloft Concierge. Tell me your destination, dates, budget, and travellers. I’ll plan something premium around your vibe.",
+        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and the vibe. I’ll guide you from there.",
     },
   ]);
 
@@ -57,14 +58,12 @@ export default function ChatWidget() {
 
   async function send() {
     const msg = text.trim();
-    if (!msg || loading) return;
+    if (!msg || loading || completed) return;
 
-    // optimistic add user message
     setMessages((m) => [...m, { role: "user", text: msg }]);
     setText("");
     setLoading(true);
 
-    // IMPORTANT: build history including the new message
     const history: ChatMsg[] = [...messages, { role: "user", text: msg }];
 
     try {
@@ -77,12 +76,25 @@ export default function ChatWidget() {
         }),
       });
 
-      const data = (await res.json()) as { reply?: string };
+      const data = (await res.json()) as { reply?: string; completed?: boolean; handoff?: string | null };
+
       const reply =
         (data.reply || "").trim() ||
-        "Got it. What dates are you travelling and what’s your budget per person?";
+        "Got it. To proceed, what’s your name, email, and WhatsApp number?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
+
+      const done = data.completed === true;
+      if (done) {
+        setCompleted(true);
+        setHandoff(data.handoff || "Perfect. A Wayloft advisor will reach out shortly to confirm and book everything.");
+
+        // show handoff as a final assistant message too (looks nicer)
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", text: data.handoff || "Perfect. A Wayloft advisor will reach out shortly to confirm and book everything." },
+        ]);
+      }
     } catch {
       setMessages((m) => [
         ...m,
@@ -166,6 +178,13 @@ export default function ChatWidget() {
                 )}
               </div>
 
+              {completed && (
+                <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-(--muted) ring-1 ring-black/10">
+                  <Lock className="h-4 w-4" />
+                  Conversation completed. An advisor will reach out shortly.
+                </div>
+              )}
+
               <div className="mt-3 flex gap-2">
                 <input
                   value={text}
@@ -173,14 +192,18 @@ export default function ChatWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder="Eg: Paris in Jan, 4 nights, £1.2k"
-                  className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
+                  placeholder={completed ? "We’ve got your details ✅" : "Eg: Morocco in Jan, 5 nights, £1.2k"}
+                  className={cn(
+                    "h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20",
+                    completed && "opacity-60"
+                  )}
+                  disabled={completed || loading}
                 />
                 <button
                   onClick={send}
                   className={cn(
                     "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
-                    (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
+                    (text.trim().length === 0 || loading || completed) && "opacity-60 pointer-events-none"
                   )}
                   aria-label="Send"
                 >
