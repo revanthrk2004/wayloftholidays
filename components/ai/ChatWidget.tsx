@@ -24,19 +24,27 @@ type Captured = {
 };
 
 type Meta = {
-  stage?: string;
+  stage?: "intake" | "refine" | "confirm_done" | "completed";
   captured?: Partial<Captured>;
   lastEmailHash?: string | null;
   didEmail?: boolean;
-  ui?: {
-    showAnythingElse?: boolean;
-    showAddMoreHint?: boolean;
-  };
 };
 
 function makeSessionId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `sess_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+}
+
+function lastAssistantText(messages: ChatMsg[]) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "assistant") return messages[i].text || "";
+  }
+  return "";
+}
+
+function assistantIsAskingAnythingElse(messages: ChatMsg[]) {
+  const t = lastAssistantText(messages);
+  return /anything else you want to add\?/i.test(t);
 }
 
 export default function ChatWidget() {
@@ -48,13 +56,12 @@ export default function ChatWidget() {
     stage: "intake",
     captured: {},
     lastEmailHash: null,
-    ui: { showAnythingElse: false, showAddMoreHint: false },
   });
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
+      text: "Hi, I’m Wayloft Ai. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
 
@@ -84,7 +91,7 @@ export default function ChatWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, open, loading, meta?.stage]);
+  }, [messages, open, loading, meta.stage]);
 
   async function send(customText?: string) {
     const msg = (customText ?? text).trim();
@@ -110,21 +117,11 @@ export default function ChatWidget() {
       const data = (await res.json()) as { reply?: string; meta?: Meta };
 
       const reply =
-        (data.reply || "").trim() ||
-        "Got it. What dates are you travelling and what’s your budget?";
+        (data.reply || "").trim() || "Got it. What dates are you travelling and what’s your budget?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
-const nextMeta = data.meta;
-
-if (nextMeta) {
-  setMeta((prev) => ({
-    ...prev,
-    ...nextMeta,
-    ui: { ...(prev.ui ?? {}), ...(nextMeta.ui ?? {}) },
-  }));
-}
-
+      if (data.meta) setMeta((prev) => ({ ...prev, ...data.meta }));
     } catch {
       setMessages((m) => [
         ...m,
@@ -135,8 +132,11 @@ if (nextMeta) {
     }
   }
 
-  const showAnythingElseButtons = !!meta?.ui?.showAnythingElse && !loading;
-  const showAddMoreHint = !!meta?.ui?.showAddMoreHint && !loading;
+  // Buttons ONLY when confirm_done AND assistant actually asked "Anything else?"
+  const showAnythingElseButtons =
+    meta.stage === "confirm_done" && assistantIsAskingAnythingElse(messages) && !loading;
+
+  const showOptionalAddMore = meta.stage === "completed";
 
   return (
     <>
@@ -164,7 +164,7 @@ if (nextMeta) {
                 </div>
 
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
+                  <div className="text-sm font-semibold text-(--primary)">Wayloft Ai</div>
                   <div className="text-xs text-(--muted)">{hint}</div>
                 </div>
               </div>
@@ -227,7 +227,7 @@ if (nextMeta) {
                   </div>
                 )}
 
-                {showAddMoreHint && (
+                {showOptionalAddMore && !loading && (
                   <div className="pt-2 text-xs text-(--muted)">
                     We’ve saved your details. If you want to add anything, just message here.
                   </div>
@@ -241,7 +241,9 @@ if (nextMeta) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder={showAddMoreHint ? "Add more details (optional)" : "Eg: Morocco, Jan 12–16, £2k, 2 people"}
+                  placeholder={
+                    showOptionalAddMore ? "Add more details (optional)" : "Eg: Turkey, Jan 14–20, £2k, 2 people"
+                  }
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
                 <button
