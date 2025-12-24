@@ -8,21 +8,20 @@ import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
-type SessionState = {
-  completed?: boolean;
-  emailed?: boolean;
-  awaitingAnythingElse?: boolean;
+type ApiState = {
+  phase?: string;
+  captured?: Record<string, any>;
+  lastSentHash?: string | null;
   awaitingMoreDetails?: boolean;
 };
 
 type ApiResponse = {
   reply?: string;
-  meta?: {
-    completed?: boolean;
-    askAnythingElse?: boolean;
-    session?: SessionState;
-    captured?: any;
+  ui?: {
+    quickReplies?: string[];
+    placeholder?: string;
   };
+  state?: ApiState;
 };
 
 function makeSessionId() {
@@ -35,22 +34,19 @@ export default function ChatWidget() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [session, setSession] = useState<SessionState>({
-    completed: false,
-    emailed: false,
-    awaitingAnythingElse: false,
-    awaitingMoreDetails: false,
-  });
-
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi, I’m Wayloft Concierge. Tell me what you want for your trip, and I’ll guide you step by step.",
+      text: "Hi, I’m Wayloft Concierge. Tell me where you’d like to go, and I’ll guide you step by step.",
     },
   ]);
 
+  const [quickReplies, setQuickReplies] = useState<string[]>([]);
+  const [placeholder, setPlaceholder] = useState("Eg: Morocco, 12 Jan to 16 Jan, £2000, 2 people");
+
   const sessionIdRef = useRef<string>(makeSessionId());
   const listRef = useRef<HTMLDivElement | null>(null);
+  const stateRef = useRef<ApiState>({ phase: "collect_destination", captured: {}, lastSentHash: null });
 
   const hint = useMemo(() => {
     const h = new Date().getHours();
@@ -75,16 +71,18 @@ export default function ChatWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, open, loading]);
+  }, [messages, open, loading, quickReplies]);
 
-  async function send(customText?: string) {
-    const msg = (customText ?? text).trim();
+  async function sendMessage(userText: string) {
+    const msg = userText.trim();
     if (!msg || loading) return;
 
-    setMessages((m) => [...m, { role: "user", text: msg }]);
+    // Add user message
+    setMessages((prev) => [...prev, { role: "user", text: msg }]);
     setText("");
     setLoading(true);
 
+    // IMPORTANT: build the history from the latest messages (avoid stale state bug)
     const history: ChatMsg[] = [...messages, { role: "user", text: msg }];
 
     try {
@@ -94,24 +92,27 @@ export default function ChatWidget() {
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
           messages: history,
-          session,
+          state: stateRef.current,
         }),
       });
 
       const data = (await res.json()) as ApiResponse;
+
       const reply =
         (data.reply || "").trim() ||
-        "Got it. Tell me one more detail and I’ll tailor it perfectly.";
+        "Got it. What dates are you travelling and what’s your budget?";
 
-      setMessages((m) => [...m, { role: "assistant", text: reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
 
-      // update session from server meta
-      if (data?.meta?.session) {
-        setSession(data.meta.session);
-      }
+      // update UI controls
+      setQuickReplies(data.ui?.quickReplies || []);
+      setPlaceholder(data.ui?.placeholder || "Type here...");
+
+      // persist state
+      stateRef.current = data.state || stateRef.current;
     } catch {
-      setMessages((m) => [
-        ...m,
+      setMessages((prev) => [
+        ...prev,
         { role: "assistant", text: "Network issue. Try again in a moment." },
       ]);
     } finally {
@@ -119,8 +120,9 @@ export default function ChatWidget() {
     }
   }
 
-  const showAnythingElseButtons = !!session.awaitingAnythingElse;
-  const completed = !!session.completed;
+  async function send() {
+    await sendMessage(text);
+  }
 
   return (
     <>
@@ -174,7 +176,7 @@ export default function ChatWidget() {
                   >
                     <div
                       className={cn(
-                        "w-fit max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap",
+                        "w-fit max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap wrap-break-word",
                         m.role === "user"
                           ? "bg-(--primary) text-white"
                           : "bg-white text-(--text) ring-1 ring-black/10"
@@ -194,20 +196,18 @@ export default function ChatWidget() {
                   </div>
                 )}
 
-                {showAnythingElseButtons && !loading && (
-                  <div className="flex w-full justify-start gap-2 pt-1">
-                    <button
-                      onClick={() => send("yes")}
-                      className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
-                    >
-                      Yes
-                    </button>
-                    <button
-                      onClick={() => send("no")}
-                      className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
-                    >
-                      No
-                    </button>
+                {/* Quick replies (premium chips) */}
+                {!loading && quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {quickReplies.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => sendMessage(q)}
+                        className="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-black/10 hover:bg-black/5"
+                      >
+                        {q}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -219,11 +219,11 @@ export default function ChatWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder={completed ? "Add more details (optional)" : "Eg: Morocco, 12 Jan to 16 Jan, £2000, 2 people"}
+                  placeholder={placeholder}
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
                 <button
-                  onClick={() => send()}
+                  onClick={send}
                   className={cn(
                     "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
                     (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
