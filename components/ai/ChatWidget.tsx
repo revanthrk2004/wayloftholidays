@@ -3,17 +3,31 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2, CheckCircle2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
-type ChatApiResponse = {
-  reply?: string;
-  status?: "open" | "ready_to_close" | "closed";
-  type?: "question" | "ideas" | "handoff";
-  captured?: Record<string, any>;
-  emailed?: boolean;
+type Captured = {
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  fromCity: string | null;
+  destination: string | null;
+  dates: string | null;
+  nights: string | null;
+  budget: string | null;
+  travellers: string | null;
+  style: string | null;
+  priorities: string | null;
+  notes: string | null;
+};
+
+type Meta = {
+  stage?: "intake" | "refine" | "confirm_done" | "completed";
+  captured?: Partial<Captured>;
+  lastEmailHash?: string | null;
+  didEmail?: boolean;
 };
 
 function makeSessionId() {
@@ -21,24 +35,24 @@ function makeSessionId() {
   return `sess_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
 
-function storageKey(sessionId: string) {
-  return `wayloft_chat_${sessionId}`;
-}
-
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [meta, setMeta] = useState<Meta>({
+    stage: "intake",
+    captured: {},
+    lastEmailHash: null,
+  });
+
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
       text:
-        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want, and where you’re thinking. I’ll guide you from there.",
+        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
-
-  const [status, setStatus] = useState<"open" | "ready_to_close" | "closed">("open");
 
   const sessionIdRef = useRef<string>(makeSessionId());
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -50,31 +64,6 @@ export default function ChatWidget() {
     if (h < 18) return "Let’s build your perfect itinerary.";
     return "Evening travel vibes. Where to next?";
   }, []);
-
-  function getEmailedFlag() {
-    if (typeof window === "undefined") return false;
-    const raw = sessionStorage.getItem(storageKey(sessionIdRef.current));
-    if (!raw) return false;
-    try {
-      const obj = JSON.parse(raw);
-      return Boolean(obj?.emailed);
-    } catch {
-      return false;
-    }
-  }
-
-  function setEmailedFlag() {
-    if (typeof window === "undefined") return;
-    const key = storageKey(sessionIdRef.current);
-    const existingRaw = sessionStorage.getItem(key);
-    let existing: any = {};
-    try {
-      existing = existingRaw ? JSON.parse(existingRaw) : {};
-    } catch {
-      existing = {};
-    }
-    sessionStorage.setItem(key, JSON.stringify({ ...existing, emailed: true }));
-  }
 
   useEffect(() => {
     function onOpen(e: Event) {
@@ -91,10 +80,10 @@ export default function ChatWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, open, loading, status]);
+  }, [messages, open, loading, meta.stage]);
 
-  async function send() {
-    const msg = text.trim();
+  async function send(customText?: string) {
+    const msg = (customText ?? text).trim();
     if (!msg || loading) return;
 
     setMessages((m) => [...m, { role: "user", text: msg }]);
@@ -110,23 +99,19 @@ export default function ChatWidget() {
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
           messages: history,
-          meta: {
-            emailed: getEmailedFlag(),
-          },
+          meta, // IMPORTANT: send meta so backend knows if already in confirm_done/completed
         }),
       });
 
-      const data = (await res.json()) as ChatApiResponse;
+      const data = (await res.json()) as { reply?: string; meta?: Meta };
+
       const reply =
         (data.reply || "").trim() ||
         "Got it. What dates are you travelling and what’s your budget per person?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
-      if (data.status) setStatus(data.status);
-
-      // Mark emailed if server emailed now
-      if (data.emailed) setEmailedFlag();
+      if (data.meta) setMeta((prev) => ({ ...prev, ...data.meta }));
     } catch {
       setMessages((m) => [
         ...m,
@@ -137,7 +122,8 @@ export default function ChatWidget() {
     }
   }
 
-  const completedUI = status === "closed";
+  const showAnythingElseButtons = meta.stage === "confirm_done";
+  const showOptionalAddMore = meta.stage === "completed";
 
   return (
     <>
@@ -165,15 +151,7 @@ export default function ChatWidget() {
                 </div>
 
                 <div className="leading-tight">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
-                    {completedUI && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-(--muted)">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Completed
-                      </span>
-                    )}
-                  </div>
+                  <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
                   <div className="text-xs text-(--muted)">{hint}</div>
                 </div>
               </div>
@@ -218,14 +196,30 @@ export default function ChatWidget() {
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* soft post-completion helper (NOT locking) */}
-              {status === "closed" && (
-                <div className="mt-3 rounded-2xl bg-black/5 px-3 py-2 text-xs text-(--muted)">
-                  We’ve saved your details. If you want to add anything, just message here.
-                </div>
-              )}
+                {showAnythingElseButtons && !loading && (
+                  <div className="flex w-full justify-end gap-2 pt-1">
+                    <button
+                      onClick={() => send("Yes")}
+                      className="rounded-full bg-white px-4 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => send("No")}
+                      className="rounded-full bg-(--primary) px-4 py-2 text-sm text-white hover:opacity-95"
+                    >
+                      No
+                    </button>
+                  </div>
+                )}
+
+                {showOptionalAddMore && !loading && (
+                  <div className="pt-2 text-xs text-(--muted)">
+                    We’ve saved your details. If you want to add anything, just message here.
+                  </div>
+                )}
+              </div>
 
               <div className="mt-3 flex gap-2">
                 <input
@@ -234,11 +228,11 @@ export default function ChatWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder={status === "closed" ? "Add more details (optional)" : "Eg: Jan 12–16, £2000, 2 travellers"}
+                  placeholder={showOptionalAddMore ? "Add more details (optional)" : "Eg: Jan, 4 nights, £1.2k, 2 people"}
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
                 <button
-                  onClick={send}
+                  onClick={() => send()}
                   className={cn(
                     "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
                     (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
