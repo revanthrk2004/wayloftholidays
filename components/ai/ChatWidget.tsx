@@ -8,20 +8,26 @@ import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
-type ApiState = {
-  phase?: string;
-  captured?: Record<string, any>;
-  lastSentHash?: string | null;
-  awaitingMoreDetails?: boolean;
+type Captured = {
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  fromCity: string | null;
+  destination: string | null;
+  dates: string | null;
+  nights: string | null;
+  budget: string | null;
+  travellers: string | null;
+  style: string | null;
+  priorities: string | null;
+  notes: string | null;
 };
 
-type ApiResponse = {
-  reply?: string;
-  ui?: {
-    quickReplies?: string[];
-    placeholder?: string;
-  };
-  state?: ApiState;
+type Meta = {
+  stage?: "intake" | "refine" | "confirm_done" | "completed";
+  captured?: Partial<Captured>;
+  lastEmailHash?: string | null;
+  didEmail?: boolean;
 };
 
 function makeSessionId() {
@@ -34,19 +40,21 @@ export default function ChatWidget() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [meta, setMeta] = useState<Meta>({
+    stage: "intake",
+    captured: {},
+    lastEmailHash: null,
+  });
+
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi, I’m Wayloft Concierge. Tell me where you’d like to go, and I’ll guide you step by step.",
+      text: "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
 
-  const [quickReplies, setQuickReplies] = useState<string[]>([]);
-  const [placeholder, setPlaceholder] = useState("Eg: Morocco, 12 Jan to 16 Jan, £2000, 2 people");
-
   const sessionIdRef = useRef<string>(makeSessionId());
   const listRef = useRef<HTMLDivElement | null>(null);
-  const stateRef = useRef<ApiState>({ phase: "collect_destination", captured: {}, lastSentHash: null });
 
   const hint = useMemo(() => {
     const h = new Date().getHours();
@@ -71,18 +79,16 @@ export default function ChatWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, open, loading, quickReplies]);
+  }, [messages, open, loading, meta.stage]);
 
-  async function sendMessage(userText: string) {
-    const msg = userText.trim();
+  async function send(customText?: string) {
+    const msg = (customText ?? text).trim();
     if (!msg || loading) return;
 
-    // Add user message
-    setMessages((prev) => [...prev, { role: "user", text: msg }]);
+    setMessages((m) => [...m, { role: "user", text: msg }]);
     setText("");
     setLoading(true);
 
-    // IMPORTANT: build the history from the latest messages (avoid stale state bug)
     const history: ChatMsg[] = [...messages, { role: "user", text: msg }];
 
     try {
@@ -92,27 +98,21 @@ export default function ChatWidget() {
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
           messages: history,
-          state: stateRef.current,
+          meta,
         }),
       });
 
-      const data = (await res.json()) as ApiResponse;
+      const data = (await res.json()) as { reply?: string; meta?: Meta };
 
       const reply =
-        (data.reply || "").trim() ||
-        "Got it. What dates are you travelling and what’s your budget?";
+        (data.reply || "").trim() || "Got it. What dates are you travelling and what’s your budget?";
 
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+      setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
-      // update UI controls
-      setQuickReplies(data.ui?.quickReplies || []);
-      setPlaceholder(data.ui?.placeholder || "Type here...");
-
-      // persist state
-      stateRef.current = data.state || stateRef.current;
+      if (data.meta) setMeta((prev) => ({ ...prev, ...data.meta }));
     } catch {
-      setMessages((prev) => [
-        ...prev,
+      setMessages((m) => [
+        ...m,
         { role: "assistant", text: "Network issue. Try again in a moment." },
       ]);
     } finally {
@@ -120,9 +120,8 @@ export default function ChatWidget() {
     }
   }
 
-  async function send() {
-    await sendMessage(text);
-  }
+  const showAnythingElseButtons = meta.stage === "confirm_done";
+  const showOptionalAddMore = meta.stage === "completed";
 
   return (
     <>
@@ -176,7 +175,7 @@ export default function ChatWidget() {
                   >
                     <div
                       className={cn(
-                        "w-fit max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap wrap-break-word",
+                        "w-fit max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap",
                         m.role === "user"
                           ? "bg-(--primary) text-white"
                           : "bg-white text-(--text) ring-1 ring-black/10"
@@ -196,18 +195,26 @@ export default function ChatWidget() {
                   </div>
                 )}
 
-                {/* Quick replies (premium chips) */}
-                {!loading && quickReplies.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {quickReplies.map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => sendMessage(q)}
-                        className="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-black/10 hover:bg-black/5"
-                      >
-                        {q}
-                      </button>
-                    ))}
+                {showAnythingElseButtons && !loading && (
+                  <div className="flex w-full justify-end gap-2 pt-1">
+                    <button
+                      onClick={() => send("Yes")}
+                      className="rounded-full bg-white px-4 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => send("No")}
+                      className="rounded-full bg-(--primary) px-4 py-2 text-sm text-white hover:opacity-95"
+                    >
+                      No
+                    </button>
+                  </div>
+                )}
+
+                {showOptionalAddMore && !loading && (
+                  <div className="pt-2 text-xs text-(--muted)">
+                    We’ve saved your details. If you want to add anything, just message here.
                   </div>
                 )}
               </div>
@@ -219,11 +226,13 @@ export default function ChatWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder={placeholder}
+                  placeholder={
+                    showOptionalAddMore ? "Add more details (optional)" : "Eg: Morocco, Jan 12–16, £2k, 2 people"
+                  }
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
                 <button
-                  onClick={send}
+                  onClick={() => send()}
                   className={cn(
                     "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
                     (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"

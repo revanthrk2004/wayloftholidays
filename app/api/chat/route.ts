@@ -10,295 +10,120 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
 type Captured = {
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  fromCity: string | null;
   destination: string | null;
   dates: string | null;
   nights: string | null;
   budget: string | null;
   travellers: string | null;
-  fromCity: string | null;
-
-  name: string | null;
-  email: string | null;
-  whatsapp: string | null;
-
   style: string | null;
   priorities: string | null;
-  notes: string | null;
+  notes: string | null; // includes extra details
+};
+
+type Meta = {
+  stage?: "intake" | "refine" | "confirm_done" | "completed";
+  captured?: Partial<Captured>;
+  lastEmailHash?: string | null;
 };
 
 type Body = {
   sessionId?: string;
   messages?: ChatMsg[];
-  state?: {
-    phase?: Phase;
-    captured?: Partial<Captured>;
-    lastSentHash?: string | null;
-    awaitingMoreDetails?: boolean;
-  };
+  meta?: Meta;
 };
-
-type Phase =
-  | "collect_destination"
-  | "collect_dates"
-  | "collect_nights"
-  | "collect_budget"
-  | "collect_travellers"
-  | "collect_fromCity"
-  | "collect_name"
-  | "collect_email"
-  | "collect_whatsapp"
-  | "collect_style"
-  | "collect_priorities"
-  | "collect_notes"
-  | "confirm_anything_else"
-  | "await_more_details"
-  | "completed";
 
 const TARGETS = ["Morocco", "Albania", "Montenegro", "Jordan", "Turkey"];
 
-function safeStr(v: unknown) {
-  return typeof v === "string" ? v.trim() : "";
-}
+const EMPTY_CAPTURED: Captured = {
+  name: null,
+  email: null,
+  whatsapp: null,
+  fromCity: null,
+  destination: null,
+  dates: null,
+  nights: null,
+  budget: null,
+  travellers: null,
+  style: null,
+  priorities: null,
+  notes: null,
+};
 
-function normalizeSpaces(s: string) {
-  return s.replace(/\s+/g, " ").trim();
-}
-
-function isEmail(v: string) {
-  const s = v.trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
-
-function normalizePhone(v: string) {
-  // Keep + and digits only
-  let s = v.trim();
-  s = s.replace(/[^\d+]/g, "");
-  // Convert 07xxxxxxxxx -> +447xxxxxxxxx
-  if (/^07\d{9}$/.test(s)) return `+44${s.slice(1)}`;
-  // Already +44...
-  if (/^\+44\d{10}$/.test(s)) return s;
-  // Generic international +...
-  if (/^\+\d{8,15}$/.test(s)) return s;
-  // UK without +
-  if (/^44\d{10}$/.test(s)) return `+${s}`;
-  return "";
-}
-
-function looksLikeGreeting(text: string) {
-  const t = text.toLowerCase();
-  return (
-    t === "hi" ||
-    t === "hey" ||
-    t === "hello" ||
-    t.includes("how are you") ||
-    t.includes("how r u") ||
-    t.includes("hey buddy") ||
-    t.includes("bro") ||
-    t.includes("buddy")
-  );
-}
-
-function buildExtractionPrompt() {
+function buildSystemPrompt() {
   return `
-Extract travel + contact details from the user message ONLY if clearly present.
-Return VALID JSON ONLY with this shape:
+You are "Wayloft Concierge" for Wayloft Holidays.
 
+Brand + tone:
+- Premium, warm, calm, human. Never sound like a coded robot.
+- If user greets ("hey", "how are you"), respond warmly in 1 line, then continue.
+- Ask only what is missing. NEVER repeat questions already answered.
+
+Business rules:
+- We currently focus on: ${TARGETS.join(", ")}.
+- If user asks outside these, suggest the closest match or ask if open to target countries.
+
+IMPORTANT flow:
+1) First understand what they want (destination / vibe / dates rough / budget rough / travellers).
+2) Then say: "To proceed, I just need your contact details" and ask for ONLY ONE at a time:
+   - Name → then Email → then WhatsApp → then optionally From City.
+   (Do not ask multiple contact questions in one message.)
+3) Then ask 1 smart refinement question (style OR priorities), one at a time.
+4) Then give "ideas" (not full day-by-day):
+   - 3 to 6 bullets: areas to stay, 2–3 must-do experiences, realistic notes.
+5) Then ask: "Anything else you want to add?" (YES/NO).
+6) stage="completed" ONLY when user clearly says "no / nothing else / that's all".
+
+Critical anti-repetition:
+- If captured.whatsapp is present, NEVER ask for WhatsApp again.
+- If captured.email is present, NEVER ask for email again.
+- If captured.name is present, NEVER ask for name again.
+
+Output format:
+Return VALID JSON only:
 {
-  "destination": string|null,
-  "dates": string|null,
-  "nights": string|null,
-  "budget": string|null,
-  "travellers": string|null,
-  "fromCity": string|null,
-  "name": string|null,
-  "email": string|null,
-  "whatsapp": string|null,
-  "style": string|null,
-  "priorities": string|null,
-  "notes": string|null
+  "stage": "intake" | "refine" | "confirm_done" | "completed",
+  "reply": string,
+  "captured": {
+    "name": string|null,
+    "email": string|null,
+    "whatsapp": string|null,
+    "fromCity": string|null,
+    "destination": string|null,
+    "dates": string|null,
+    "nights": string|null,
+    "budget": string|null,
+    "travellers": string|null,
+    "style": string|null,
+    "priorities": string|null,
+    "notes": string|null
+  }
 }
 
-Rules:
-- Do not invent.
-- If user says "2 people" => travellers="2"
-- If message has phone number, put it in whatsapp as provided (no formatting), we'll normalize later.
-- If user adds extra info like "we want luxury, halal food, shopping", that can go into notes if no better field fits.
+Stage rules:
+- "intake" when key trip basics missing.
+- "refine" when basics are there but need 1 missing detail (ask ONE question).
+- "confirm_done" when you have enough + you have given ideas + now asking "Anything else?"
+- "completed" ONLY when user clearly says "no / nothing else / that's all".
+- notes: include any extra details user adds, especially after confirm_done.
 `;
 }
 
-async function extractFromMessage(userText: string): Promise<Partial<Captured>> {
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: buildExtractionPrompt() },
-      { role: "user", content: userText },
-    ],
-  });
-
-  const raw = completion.choices?.[0]?.message?.content?.trim() || "{}";
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as Partial<Captured>) : {};
-  } catch {
-    return {};
-  }
+function safeStr(v: unknown) {
+  if (typeof v !== "string") return "";
+  return v.trim();
 }
 
-function mergeCaptured(base: Captured, patch: Partial<Captured>): Captured {
-  const out: Captured = { ...base };
-
-  const setIf = (k: keyof Captured, v: unknown) => {
-    const s = typeof v === "string" ? normalizeSpaces(v) : "";
-    if (!s) return;
-    (out[k] as any) = s;
-  };
-
-  setIf("destination", patch.destination);
-  setIf("dates", patch.dates);
-  setIf("nights", patch.nights);
-  setIf("budget", patch.budget);
-  setIf("travellers", patch.travellers);
-  setIf("fromCity", patch.fromCity);
-
-  setIf("name", patch.name);
-  setIf("email", patch.email);
-  setIf("whatsapp", patch.whatsapp);
-
-  setIf("style", patch.style);
-  setIf("priorities", patch.priorities);
-  setIf("notes", patch.notes);
-
-  // Normalize whatsapp if present
-  if (out.whatsapp) {
-    const n = normalizePhone(out.whatsapp);
-    if (n) out.whatsapp = n;
-  }
-
-  return out;
+function normalizeCaptured(partial?: Partial<Captured>): Captured {
+  return { ...EMPTY_CAPTURED, ...(partial || {}) };
 }
 
-function initialCaptured(): Captured {
-  return {
-    destination: null,
-    dates: null,
-    nights: null,
-    budget: null,
-    travellers: null,
-    fromCity: null,
-
-    name: null,
-    email: null,
-    whatsapp: null,
-
-    style: null,
-    priorities: null,
-    notes: null,
-  };
-}
-
-function nextPhaseFromCaptured(c: Captured, current: Phase): Phase {
-  // Strict one-by-one order
-  if (!c.destination) return "collect_destination";
-  if (!c.dates) return "collect_dates";
-  if (!c.nights) return "collect_nights";
-  if (!c.budget) return "collect_budget";
-  if (!c.travellers) return "collect_travellers";
-  if (!c.fromCity) return "collect_fromCity";
-
-  if (!c.name) return "collect_name";
-  if (!c.email) return "collect_email";
-  if (!c.whatsapp) return "collect_whatsapp";
-
-  // Preferences are optional but we ask briefly
-  if (!c.style) return "collect_style";
-  if (!c.priorities) return "collect_priorities";
-  if (!c.notes) return "collect_notes";
-
-  // If we already asked "Anything else?" and user said yes, we wait for extra details
-  if (current === "await_more_details") return "await_more_details";
-
-  return "confirm_anything_else";
-}
-
-function destinationAllowed(destination: string | null) {
-  if (!destination) return true;
-  const d = destination.toLowerCase();
-  return TARGETS.some((t) => t.toLowerCase() === d);
-}
-
-function suggestClosest(destination: string) {
-  // simple: just suggest the list (premium tone)
-  return `We currently plan trips in ${TARGETS.join(
-    ", "
-  )}. If you're open to it, tell me which of these feels closest to your vibe.`;
-}
-
-function questionForPhase(phase: Phase, c: Captured) {
-  switch (phase) {
-    case "collect_destination":
-      return `Where would you like to go? We currently plan trips in ${TARGETS.join(
-        ", "
-      )}.`;
-    case "collect_dates":
-      return `Nice. What dates are you thinking for ${c.destination}?`;
-    case "collect_nights":
-      return `How many nights would you like to stay?`;
-    case "collect_budget":
-      return `What’s your total budget for the trip (roughly)?`;
-    case "collect_travellers":
-      return `How many travellers will be going?`;
-    case "collect_fromCity":
-      return `Which city will you be departing from?`;
-    case "collect_name":
-      return `Perfect. What’s your name?`;
-    case "collect_email":
-      return `And your best email address (so we can send options and confirm details)?`;
-    case "collect_whatsapp":
-      return `Finally, what’s your WhatsApp number (with country code if possible)?`;
-    case "collect_style":
-      return `What’s your travel style for this one? For example: luxury, mid-range, adventure, calm, shopping, honeymoon.`;
-    case "collect_priorities":
-      return `What are your top priorities? For example: food, culture, beaches, desert, nightlife, shopping.`;
-    case "collect_notes":
-      return `Anything important to note? Dietary needs, hotel preferences, must-do activities, celebration, anything like that.`;
-    case "confirm_anything_else":
-      return `Amazing. I’ve got everything I need. Do you want to add anything else before I hand this to a Wayloft advisor?`;
-    case "await_more_details":
-      return `Sure. Tell me what you'd like to add, and I’ll update your request.`;
-    default:
-      return `Tell me a bit more about your trip.`;
-  }
-}
-
-function buildSummary(c: Captured, sessionId: string) {
-  return `WAYLOFT CHAT SUMMARY
-
-Session: ${sessionId}
-
-Captured:
-Name: ${c.name ?? "-"}
-Email: ${c.email ?? "-"}
-WhatsApp: ${c.whatsapp ?? "-"}
-From City: ${c.fromCity ?? "-"}
-Destination: ${c.destination ?? "-"}
-Dates: ${c.dates ?? "-"}
-Nights: ${c.nights ?? "-"}
-Budget: ${c.budget ?? "-"}
-Travellers: ${c.travellers ?? "-"}
-Style: ${c.style ?? "-"}
-Priorities: ${c.priorities ?? "-"}
-Notes: ${c.notes ?? "-"}
-`;
-}
-
-function hashString(s: string) {
-  // lightweight deterministic hash
+function makeHash(input: string) {
   let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  }
+  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) >>> 0;
   return `h_${h.toString(16)}`;
 }
 
@@ -312,17 +137,79 @@ async function sendEmail(subject: string, text: string) {
   await resend.emails.send({ from, to, subject, text });
 }
 
+function isProbablyNo(msg: string) {
+  const lower = msg.toLowerCase().trim();
+  return [
+    "no",
+    "nope",
+    "nothing",
+    "nothing else",
+    "thats all",
+    "that's all",
+    "done",
+    "all good",
+    "no thanks",
+    "no thank you",
+  ].includes(lower);
+}
+
+// ---------- Auto-capture helpers (THIS FIXES WHATSAPP REPEATING) ----------
+function extractEmail(text: string): string | null {
+  const m = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return m ? m[0].trim() : null;
+}
+
+function normalizePhone(raw: string): string {
+  // keep + and digits
+  let v = raw.replace(/[^\d+]/g, "");
+  // convert 00xx -> +xx
+  if (v.startsWith("00")) v = "+" + v.slice(2);
+  // UK local 07... -> +44...
+  if (v.startsWith("07") && v.length >= 10) v = "+44" + v.slice(1);
+  // If no + and long number, leave as-is
+  return v;
+}
+
+function extractPhone(text: string): string | null {
+  // catches: 07..., +44..., 0044..., spaced numbers
+  const m = text.match(/(\+?\d[\d\s().-]{7,}\d)/);
+  if (!m) return null;
+  const cleaned = normalizePhone(m[0]);
+  // basic sanity: at least 10 digits
+  const digits = cleaned.replace(/[^\d]/g, "");
+  if (digits.length < 10) return null;
+  return cleaned;
+}
+
+function mergeCaptured(prev: Captured, incoming: Captured): Captured {
+  const out: Captured = { ...prev };
+  (Object.keys(out) as (keyof Captured)[]).forEach((k) => {
+    const next = incoming[k];
+    if (typeof next === "string" && next.trim()) out[k] = next.trim();
+    // allow explicit null to NOT wipe previous
+  });
+  return out;
+}
+
+function appendNotes(existing: string | null, extra: string) {
+  const e = (existing || "").trim();
+  const x = extra.trim();
+  if (!x) return existing;
+  if (e.includes(x)) return existing;
+  return e ? `${e}\n\nExtra details: ${x}` : `Extra details: ${x}`;
+}
+// ------------------------------------------------------------------------
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body;
 
     const sessionId = safeStr(body.sessionId) || `sess_${Date.now()}`;
     const history = Array.isArray(body.messages) ? body.messages : [];
-
-    const prevPhase = (body.state?.phase as Phase) || "collect_destination";
-    const prevCaptured = body.state?.captured || {};
-    const lastSentHash = body.state?.lastSentHash || null;
-    const awaitingMoreDetails = !!body.state?.awaitingMoreDetails;
+    const prevMeta = body.meta || {};
+    const prevStage = prevMeta.stage || "intake";
+    const prevCaptured = normalizeCaptured(prevMeta.captured);
+    const prevEmailHash = prevMeta.lastEmailHash || null;
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -330,6 +217,7 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json(
         { reply: "Missing RESEND_API_KEY. Add it in .env.local + Vercel env vars." },
@@ -340,170 +228,144 @@ export async function POST(req: Request) {
     const lastUserMsg =
       [...history].reverse().find((m) => m.role === "user")?.text?.trim() || "";
 
-    // Friendly small-talk handling (prevents “robot”)
-    if (looksLikeGreeting(lastUserMsg) && prevPhase === "collect_destination") {
-      const reply =
-        "Hey! I’m good, thanks. Quick one so I can plan this properly. Where would you like to go?";
-      return NextResponse.json({
-        reply,
-        ui: { quickReplies: TARGETS },
-        state: {
-          phase: "collect_destination",
-          captured: prevCaptured,
-          lastSentHash,
-          awaitingMoreDetails: false,
-        },
-      });
+    const looksLikeNo = isProbablyNo(lastUserMsg);
+
+    // If user typed after "completed" and it's NOT a "no", treat as extra details
+    // and reopen into confirm_done so we can capture properly and then ask anything else again.
+    let effectiveStage: Meta["stage"] = prevStage;
+    let effectiveCaptured: Captured = { ...prevCaptured };
+
+    if (prevStage === "completed" && !looksLikeNo && lastUserMsg.trim()) {
+      effectiveStage = "confirm_done";
+      effectiveCaptured.notes = appendNotes(effectiveCaptured.notes, lastUserMsg);
     }
 
-    // Extract + merge info from the user message
-    const extracted = await extractFromMessage(lastUserMsg);
-
-    const base = mergeCaptured(initialCaptured(), prevCaptured);
-    let captured = mergeCaptured(base, extracted);
-
-    // Validate email if captured
-    if (captured.email && !isEmail(captured.email)) {
-      captured.email = null;
+    // Auto-capture from raw text BEFORE calling model (fixes phone/email repetition)
+    if (!effectiveCaptured.email) {
+      const em = extractEmail(lastUserMsg);
+      if (em) effectiveCaptured.email = em;
+    }
+    if (!effectiveCaptured.whatsapp) {
+      const ph = extractPhone(lastUserMsg);
+      if (ph) effectiveCaptured.whatsapp = ph;
     }
 
-    // If destination not in targets, politely redirect
-    if (captured.destination && !destinationAllowed(captured.destination)) {
-      const reply = `We can definitely help. ${suggestClosest(captured.destination)}`;
-      return NextResponse.json({
-        reply,
-        ui: { quickReplies: TARGETS },
-        state: {
-          phase: "collect_destination",
-          captured: { ...captured, destination: null },
-          lastSentHash,
-          awaitingMoreDetails: false,
-        },
-      });
+    const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      { role: "system", content: buildSystemPrompt() },
+      {
+        role: "system",
+        content: `Previous known details (do not repeat questions for these):
+stage=${effectiveStage}
+captured=${JSON.stringify(effectiveCaptured)}
+`,
+      },
+      ...history.map((m) => ({ role: m.role, content: m.text })),
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.4,
+      messages: chatMessages,
+      response_format: { type: "json_object" },
+    });
+
+    const raw = completion.choices?.[0]?.message?.content?.trim() || "{}";
+
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
     }
 
-    // If we were waiting for extra details, and user typed something meaningful, put it into notes (append)
-    let phase: Phase = prevPhase;
+    const stage: Meta["stage"] =
+      parsed?.stage === "completed" ||
+      parsed?.stage === "confirm_done" ||
+      parsed?.stage === "refine" ||
+      parsed?.stage === "intake"
+        ? parsed.stage
+        : "intake";
 
-    if (awaitingMoreDetails || prevPhase === "await_more_details") {
-      // If user says "no" here, treat as completion
-      const t = lastUserMsg.toLowerCase().trim();
-      if (t === "no" || t === "nope" || t === "nothing" || t === "nothing else") {
-        phase = "confirm_anything_else";
-      } else {
-        // Append to notes so it will be in final email
-        const extra = normalizeSpaces(lastUserMsg);
-        if (extra) {
-          captured.notes = captured.notes ? `${captured.notes}\nExtra: ${extra}` : `Extra: ${extra}`;
-        }
-        phase = "confirm_anything_else";
-      }
-    } else {
-      phase = nextPhaseFromCaptured(captured, prevPhase);
+    const reply =
+      typeof parsed?.reply === "string" && parsed.reply.trim()
+        ? parsed.reply.trim()
+        : "Tell me where you want to go and roughly when, and I’ll guide you.";
+
+    const modelCaptured = normalizeCaptured(parsed?.captured);
+
+    // Merge: keep previous, apply model, plus our auto-capture again (final safety)
+    let mergedCaptured = mergeCaptured(effectiveCaptured, modelCaptured);
+
+    // Auto-capture again after model in case model reply missed it
+    if (!mergedCaptured.email) {
+      const em = extractEmail(lastUserMsg);
+      if (em) mergedCaptured.email = em;
+    }
+    if (!mergedCaptured.whatsapp) {
+      const ph = extractPhone(lastUserMsg);
+      if (ph) mergedCaptured.whatsapp = ph;
     }
 
-    // Confirm step: yes/no controls
-    if (phase === "confirm_anything_else") {
-      const t = lastUserMsg.toLowerCase().trim();
-
-      // If user just arrived here (not answering yes/no yet), ask the confirm question
-      const justReachedConfirm =
-        prevPhase !== "confirm_anything_else" && prevPhase !== "await_more_details";
-
-      if (justReachedConfirm) {
-        const reply = questionForPhase("confirm_anything_else", captured);
-        return NextResponse.json({
-          reply,
-          ui: { quickReplies: ["Yes", "No"], placeholder: "Type here (optional)" },
-          state: {
-            phase: "confirm_anything_else",
-            captured,
-            lastSentHash,
-            awaitingMoreDetails: false,
-          },
-        });
-      }
-
-      // User answered NO -> complete + email once (no spam)
-      if (t === "no" || t === "nope") {
-        const summary = buildSummary(captured, sessionId);
-        const newHash = hashString(summary);
-
-        if (newHash !== lastSentHash) {
-          const subject = `Wayloft Chat — Completed — ${captured.destination ?? "Trip"} — ${sessionId.slice(
-            0,
-            8
-          )}`;
-          await sendEmail(subject, summary);
-        }
-
-        return NextResponse.json({
-          reply:
-            "Perfect. A Wayloft advisor will reach out shortly. If you remember anything later, you can message here and I’ll update your request.",
-          ui: { quickReplies: [] },
-          state: {
-            phase: "completed",
-            captured,
-            lastSentHash: newHash,
-            awaitingMoreDetails: false,
-          },
-        });
-      }
-
-      // User answered YES -> wait for extra details
-      if (t === "yes" || t === "y" || t === "yeah") {
-        const reply = questionForPhase("await_more_details", captured);
-        return NextResponse.json({
-          reply,
-          ui: { quickReplies: [] },
-          state: {
-            phase: "await_more_details",
-            captured,
-            lastSentHash,
-            awaitingMoreDetails: true,
-          },
-        });
-      }
-
-      // If they typed something else at confirm step, treat it like extra info
-      if (t && t !== "yes" && t !== "no") {
-        const extra = normalizeSpaces(lastUserMsg);
-        if (extra) {
-          captured.notes = captured.notes ? `${captured.notes}\nExtra: ${extra}` : `Extra: ${extra}`;
-        }
-        const reply = "Got it. Anything else you want to add?";
-        return NextResponse.json({
-          reply,
-          ui: { quickReplies: ["Yes", "No"] },
-          state: {
-            phase: "confirm_anything_else",
-            captured,
-            lastSentHash,
-            awaitingMoreDetails: false,
-          },
-        });
-      }
+    // If we are in confirm_done/completed and user typed extra (not "no"), store in notes
+    if (!looksLikeNo && (effectiveStage === "confirm_done" || effectiveStage === "completed")) {
+      mergedCaptured.notes = appendNotes(mergedCaptured.notes, lastUserMsg);
     }
 
-    // Normal question flow
-    const reply = questionForPhase(phase, captured);
+    // Email only when conversation is truly finished (stage completed AND user said no)
+    let didEmail = false;
+    let nextEmailHash = prevEmailHash;
 
-    // Quick replies for destination + confirm only
-    const ui =
-      phase === "collect_destination"
-        ? { quickReplies: TARGETS }
-        : phase === "confirm_anything_else"
-        ? { quickReplies: ["Yes", "No"] }
-        : undefined;
+    const shouldEmail = stage === "completed" && looksLikeNo;
+
+    if (shouldEmail) {
+      const emailPayload = { sessionId, stage: "completed", captured: mergedCaptured };
+      const hash = makeHash(JSON.stringify(emailPayload));
+
+      if (hash !== prevEmailHash) {
+        const subject = `WAYLOFT CHAT LOG — ${sessionId.slice(0, 8)} — COMPLETED`;
+        const text = `WAYLOFT CHAT LOG
+
+Session: ${sessionId}
+Stage: completed
+Completed: YES
+
+Captured:
+Name: ${mergedCaptured.name ?? "-"}
+Email: ${mergedCaptured.email ?? "-"}
+WhatsApp: ${mergedCaptured.whatsapp ?? "-"}
+From City: ${mergedCaptured.fromCity ?? "-"}
+Destination: ${mergedCaptured.destination ?? "-"}
+Dates: ${mergedCaptured.dates ?? "-"}
+Nights: ${mergedCaptured.nights ?? "-"}
+Budget: ${mergedCaptured.budget ?? "-"}
+Travellers: ${mergedCaptured.travellers ?? "-"}
+Style: ${mergedCaptured.style ?? "-"}
+Priorities: ${mergedCaptured.priorities ?? "-"}
+Notes: ${mergedCaptured.notes ?? "-"}
+
+Last user message:
+${lastUserMsg || "-"}
+
+--- Recent history (last 14) ---
+${history
+  .slice(-14)
+  .map((m) => `${m.role.toUpperCase()}: ${m.text}`)
+  .join("\n\n")}
+`;
+
+        await sendEmail(subject, text);
+        didEmail = true;
+        nextEmailHash = hash;
+      }
+    }
 
     return NextResponse.json({
       reply,
-      ui,
-      state: {
-        phase,
-        captured,
-        lastSentHash,
-        awaitingMoreDetails: false,
+      meta: {
+        stage,
+        captured: mergedCaptured,
+        lastEmailHash: nextEmailHash,
+        didEmail,
       },
     });
   } catch {
