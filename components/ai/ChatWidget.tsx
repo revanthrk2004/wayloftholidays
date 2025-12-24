@@ -3,30 +3,42 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2, Lock } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
+
+type ChatApiResponse = {
+  reply?: string;
+  status?: "open" | "ready_to_close" | "closed";
+  type?: "question" | "ideas" | "handoff";
+  captured?: Record<string, any>;
+  emailed?: boolean;
+};
 
 function makeSessionId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `sess_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
 
+function storageKey(sessionId: string) {
+  return `wayloft_chat_${sessionId}`;
+}
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [completed, setCompleted] = useState(false);
-  const [handoff, setHandoff] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
       text:
-        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and the vibe. I’ll guide you from there.",
+        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want, and where you’re thinking. I’ll guide you from there.",
     },
   ]);
+
+  const [status, setStatus] = useState<"open" | "ready_to_close" | "closed">("open");
 
   const sessionIdRef = useRef<string>(makeSessionId());
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +50,31 @@ export default function ChatWidget() {
     if (h < 18) return "Let’s build your perfect itinerary.";
     return "Evening travel vibes. Where to next?";
   }, []);
+
+  function getEmailedFlag() {
+    if (typeof window === "undefined") return false;
+    const raw = sessionStorage.getItem(storageKey(sessionIdRef.current));
+    if (!raw) return false;
+    try {
+      const obj = JSON.parse(raw);
+      return Boolean(obj?.emailed);
+    } catch {
+      return false;
+    }
+  }
+
+  function setEmailedFlag() {
+    if (typeof window === "undefined") return;
+    const key = storageKey(sessionIdRef.current);
+    const existingRaw = sessionStorage.getItem(key);
+    let existing: any = {};
+    try {
+      existing = existingRaw ? JSON.parse(existingRaw) : {};
+    } catch {
+      existing = {};
+    }
+    sessionStorage.setItem(key, JSON.stringify({ ...existing, emailed: true }));
+  }
 
   useEffect(() => {
     function onOpen(e: Event) {
@@ -54,11 +91,11 @@ export default function ChatWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, open, loading]);
+  }, [messages, open, loading, status]);
 
   async function send() {
     const msg = text.trim();
-    if (!msg || loading || completed) return;
+    if (!msg || loading) return;
 
     setMessages((m) => [...m, { role: "user", text: msg }]);
     setText("");
@@ -73,28 +110,23 @@ export default function ChatWidget() {
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
           messages: history,
+          meta: {
+            emailed: getEmailedFlag(),
+          },
         }),
       });
 
-      const data = (await res.json()) as { reply?: string; completed?: boolean; handoff?: string | null };
-
+      const data = (await res.json()) as ChatApiResponse;
       const reply =
         (data.reply || "").trim() ||
-        "Got it. To proceed, what’s your name, email, and WhatsApp number?";
+        "Got it. What dates are you travelling and what’s your budget per person?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
-      const done = data.completed === true;
-      if (done) {
-        setCompleted(true);
-        setHandoff(data.handoff || "Perfect. A Wayloft advisor will reach out shortly to confirm and book everything.");
+      if (data.status) setStatus(data.status);
 
-        // show handoff as a final assistant message too (looks nicer)
-        setMessages((m) => [
-          ...m,
-          { role: "assistant", text: data.handoff || "Perfect. A Wayloft advisor will reach out shortly to confirm and book everything." },
-        ]);
-      }
+      // Mark emailed if server emailed now
+      if (data.emailed) setEmailedFlag();
     } catch {
       setMessages((m) => [
         ...m,
@@ -104,6 +136,8 @@ export default function ChatWidget() {
       setLoading(false);
     }
   }
+
+  const completedUI = status === "closed";
 
   return (
     <>
@@ -131,7 +165,15 @@ export default function ChatWidget() {
                 </div>
 
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
+                    {completedUI && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-(--muted)">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Completed
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-(--muted)">{hint}</div>
                 </div>
               </div>
@@ -178,10 +220,10 @@ export default function ChatWidget() {
                 )}
               </div>
 
-              {completed && (
-                <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-(--muted) ring-1 ring-black/10">
-                  <Lock className="h-4 w-4" />
-                  Conversation completed. An advisor will reach out shortly.
+              {/* soft post-completion helper (NOT locking) */}
+              {status === "closed" && (
+                <div className="mt-3 rounded-2xl bg-black/5 px-3 py-2 text-xs text-(--muted)">
+                  We’ve saved your details. If you want to add anything, just message here.
                 </div>
               )}
 
@@ -192,18 +234,14 @@ export default function ChatWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder={completed ? "We’ve got your details ✅" : "Eg: Morocco in Jan, 5 nights, £1.2k"}
-                  className={cn(
-                    "h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20",
-                    completed && "opacity-60"
-                  )}
-                  disabled={completed || loading}
+                  placeholder={status === "closed" ? "Add more details (optional)" : "Eg: Jan 12–16, £2000, 2 travellers"}
+                  className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
                 <button
                   onClick={send}
                   className={cn(
                     "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
-                    (text.trim().length === 0 || loading || completed) && "opacity-60 pointer-events-none"
+                    (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
                   )}
                   aria-label="Send"
                 >
