@@ -24,10 +24,12 @@ type Captured = {
 };
 
 type Meta = {
-  stage?: "intake" | "contact" | "refine" | "confirm_done" | "completed" | "extra_collect";
+  stage?: "intake" | "refine" | "confirm_done" | "completed";
   captured?: Partial<Captured>;
   lastEmailHash?: string | null;
-  expecting?: "name" | "email" | "whatsapp" | "fromCity" | "style" | "priorities" | "extra";
+  lastUpdateHash?: string | null;
+  didEmail?: boolean;
+  didUpdateEmail?: boolean;
 };
 
 function makeSessionId() {
@@ -44,12 +46,15 @@ export default function ChatWidget() {
     stage: "intake",
     captured: {},
     lastEmailHash: null,
+    lastUpdateHash: null,
+    didEmail: false,
   });
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking, and I’ll guide you from there.",
+      text:
+        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
 
@@ -106,7 +111,7 @@ export default function ChatWidget() {
 
       const reply =
         (data.reply || "").trim() ||
-        "Got it. What dates are you travelling and what’s your budget?";
+        "Got it. Roughly when are you travelling and what’s your budget?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
@@ -122,7 +127,7 @@ export default function ChatWidget() {
   }
 
   const showAnythingElseButtons = meta.stage === "confirm_done";
-  const showAfterCompletedHint = meta.stage === "completed";
+  const showOptionalAddMore = meta.stage === "completed";
 
   return (
     <>
@@ -213,9 +218,9 @@ export default function ChatWidget() {
                   </div>
                 )}
 
-                {showAfterCompletedHint && !loading && (
+                {showOptionalAddMore && !loading && (
                   <div className="pt-2 text-xs text-(--muted)">
-                    We’ve saved your details. If you want to add anything else for the advisor, just message here.
+                    We’ve saved your details. If you want to add anything, just message here.
                   </div>
                 )}
               </div>
@@ -228,9 +233,9 @@ export default function ChatWidget() {
                     if (e.key === "Enter") send();
                   }}
                   placeholder={
-                    meta.stage === "completed"
-                      ? "Add extra details (optional)"
-                      : "Eg: Morocco, 12 Jan to 16 Jan, £2000, 2 people"
+                    showOptionalAddMore
+                      ? "Add more details (optional)"
+                      : "Eg: Morocco, Jan 12–16, £2k, 2 people"
                   }
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
