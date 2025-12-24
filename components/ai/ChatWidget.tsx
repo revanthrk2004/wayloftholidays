@@ -61,7 +61,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
+      text: "Hi, I’m Wayloft Ai. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
 
@@ -164,7 +164,7 @@ export default function ChatWidget() {
                 </div>
 
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
+                  <div className="text-sm font-semibold text-(--primary)">Wayloft Ai</div>
                   <div className="text-xs text-(--muted)">{hint}</div>
                 </div>
               </div>
@@ -216,13 +216,13 @@ export default function ChatWidget() {
                       onClick={() => send("Yes")}
                       className="rounded-full bg-white px-4 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
                     >
-                      Yes
+                      
                     </button>
                     <button
                       onClick={() => send("No")}
                       className="rounded-full bg-(--primary) px-4 py-2 text-sm text-white hover:opacity-95"
                     >
-                      No
+                      
                     </button>
                   </div>
                 )}
