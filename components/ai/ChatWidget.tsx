@@ -8,10 +8,25 @@ import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
+function getOrCreateSessionId() {
+  if (typeof window === "undefined") return "server";
+  const key = "wayloft_chat_session";
+  const existing = window.localStorage.getItem(key);
+  if (existing) return existing;
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `sess_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  window.localStorage.setItem(key, id);
+  return id;
+}
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [sessionId, setSessionId] = useState<string>("");
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
@@ -32,6 +47,10 @@ export default function ChatWidget() {
   }, []);
 
   useEffect(() => {
+    setSessionId(getOrCreateSessionId());
+  }, []);
+
+  useEffect(() => {
     function onOpen(e: Event) {
       const ce = e as CustomEvent<{ prefill?: string }>;
       const prefill = ce?.detail?.prefill?.trim();
@@ -40,7 +59,8 @@ export default function ChatWidget() {
     }
 
     window.addEventListener("wayloft:chat_open", onOpen as EventListener);
-    return () => window.removeEventListener("wayloft:chat_open", onOpen as EventListener);
+    return () =>
+      window.removeEventListener("wayloft:chat_open", onOpen as EventListener);
   }, []);
 
   useEffect(() => {
@@ -53,7 +73,9 @@ export default function ChatWidget() {
     const msg = text.trim();
     if (!msg || loading) return;
 
-    setMessages((m) => [...m, { role: "user", text: msg }]);
+    const nextMessages: ChatMsg[] = [...messages, { role: "user", text: msg }];
+
+    setMessages(nextMessages);
     setText("");
     setLoading(true);
 
@@ -61,10 +83,15 @@ export default function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg }),
+        body: JSON.stringify({
+          sessionId,
+          messages: nextMessages,
+          targets: ["Morocco", "Albania", "Montenegro", "Jordan", "Turkey"],
+        }),
       });
 
       const data = (await res.json()) as { reply?: string };
+
       const reply =
         (data.reply || "").trim() ||
         "Got it. What dates are you travelling and what’s your budget per person?";
@@ -114,7 +141,9 @@ export default function ChatWidget() {
                 </div>
 
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold text-(--primary)">Wayloft Concierge</div>
+                  <div className="text-sm font-semibold text-(--primary)">
+                    Wayloft Concierge
+                  </div>
                   <div className="text-xs text-(--muted)">{hint}</div>
                 </div>
               </div>
@@ -130,40 +159,40 @@ export default function ChatWidget() {
 
             {/* Body */}
             <div className="p-4">
-              {/* IMPORTANT: this height class was broken in your file before */}
               <div
                 ref={listRef}
                 className="h-80 space-y-3 overflow-y-auto rounded-2xl bg-(--light) p-3 ring-1 ring-black/5"
               >
                 {messages.map((m, idx) => (
-                <div
+                  <div
                     key={idx}
-                    className={cn("flex w-full", m.role === "user" ? "justify-end" : "justify-start")}
-                >
-                    <div
                     className={cn(
+                      "flex w-full",
+                      m.role === "user" ? "justify-end" : "justify-start"
+                    )}
+                  >
+                    <div
+                      className={cn(
                         "w-fit max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap",
                         m.role === "user"
-                        ? "bg-(--primary) text-white"
-                        : "bg-white text-(--text) ring-1 ring-black/10"
-                    )}
+                          ? "bg-(--primary) text-white"
+                          : "bg-white text-(--text) ring-1 ring-black/10"
+                      )}
                     >
-                    {m.text}
+                      {m.text}
                     </div>
-                </div>
+                  </div>
                 ))}
 
-
                 {loading && (
-                  <div className="mr-auto inline-block w-fit max-w-[85%] whitespace-pre-wrap wrap-break-word rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
-  <span className="inline-flex items-center gap-2">
-    <Loader2 className="h-4 w-4 animate-spin" />
-    Thinking...
-  </span>
-</div>
-
+                  <div className="flex w-full justify-start">
+                    <div className="inline-flex w-fit max-w-[85%] items-center gap-2 rounded-2xl bg-white px-3 py-2 text-sm text-(--muted) ring-1 ring-black/10">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Thinking...
+                    </div>
+                  </div>
                 )}
-              </div>hi
+              </div>
 
               <div className="mt-3 flex gap-2">
                 <input
@@ -179,7 +208,8 @@ export default function ChatWidget() {
                   onClick={send}
                   className={cn(
                     "grid h-11 w-12 place-items-center rounded-2xl bg-(--primary) text-white hover:opacity-95 active:opacity-90",
-                    (text.trim().length === 0 || loading) && "opacity-60 pointer-events-none"
+                    (text.trim().length === 0 || loading) &&
+                      "opacity-60 pointer-events-none"
                   )}
                   aria-label="Send"
                 >
