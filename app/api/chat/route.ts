@@ -17,7 +17,7 @@ type Captured = {
   destination: string | null;
   dates: string | null;
   nights: string | null;
-  budget: string | null;
+  budget: string | null; // TOTAL budget only
   travellers: string | null;
   style: string | null;
   priorities: string | null;
@@ -67,8 +67,14 @@ Destinations:
 - We currently focus on: ${TARGETS.join(", ")}.
 - If user asks outside these, politely ask if open to one of these.
 
+BUDGET RULE (IMPORTANT):
+- Budget MUST ALWAYS be the TOTAL budget for the whole trip (NOT per person).
+- NEVER say "per person", "pp", "each" in your confirmations.
+- If the user writes a per-person style budget, ask a quick clarification:
+  "Just to confirm, is that £X total for the whole trip?"
+
 FLOW (STRICT):
-A) Trip basics first: destination + dates/rough window + travellers + budget (rough is fine).
+A) Trip basics first: destination + dates/rough window + travellers + TOTAL budget (rough is fine).
 B) Then: "To proceed, I just need a few contact details" and ask ONE by ONE:
    1) Name
    2) Email
@@ -156,8 +162,10 @@ function isProbablyNo(msg: string) {
 
 function isAddMoreIntent(msg: string) {
   const lower = msg.toLowerCase().trim();
-  return /(add|update|change|edit|modify).*(more|details|info)?/.test(lower) ||
-    ["add more", "need add", "i need add", "add", "update", "change"].includes(lower);
+  return (
+    /(add|update|change|edit|modify).*(more|details|info)?/.test(lower) ||
+    ["add more", "need add", "i need add", "add", "update", "change", "want to add"].includes(lower)
+  );
 }
 
 function replyMentionsAnythingElse(reply: string) {
@@ -192,6 +200,21 @@ function extractPhone(text: string): string | null {
   return cleaned;
 }
 
+function mentionsPerPerson(text: string) {
+  const t = text.toLowerCase();
+  return /\b(per person|pp|each|per head)\b/.test(t);
+}
+
+function extractBudgetNumber(text: string): number | null {
+  // accepts: £2000, 2000 pounds, 2,000, etc.
+  const m = text
+    .replace(/,/g, "")
+    .match(/(?:£\s*)?(\d{2,})(?:\s*(?:pounds|gbp))?/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 function mergeCaptured(prev: Captured, incoming: Captured): Captured {
   const out: Captured = { ...prev };
   (Object.keys(out) as (keyof Captured)[]).forEach((k) => {
@@ -207,6 +230,15 @@ function appendNotes(existing: string | null, extra: string) {
   if (!x) return existing;
   if (e.includes(x)) return existing;
   return e ? `${e}\n\nExtra details: ${x}` : `Extra details: ${x}`;
+}
+
+function stripPerPersonPhrases(reply: string) {
+  // remove "per person" language if model sneaks it in
+  return reply
+    .replace(/\bper person\b/gi, "in total")
+    .replace(/\bpp\b/gi, "in total")
+    .replace(/\bper head\b/gi, "in total")
+    .replace(/\beach\b/gi, "in total");
 }
 // ----------------------------------------
 
@@ -242,9 +274,7 @@ export async function POST(req: Request) {
     const looksLikeNo = isProbablyNo(lastUserMsg);
     const wantsAddMore = isAddMoreIntent(lastUserMsg);
 
-    // -----------------------
-    // 1) Hard rule: if already completed and user says "add more", ask what to add (no model call)
-    // -----------------------
+    // 1) If already completed and user says "add more", ask what to add (no model call)
     if (prevStage === "completed" && wantsAddMore) {
       return NextResponse.json({
         reply: "Of course. What would you like to add or change? Just type it here.",
@@ -257,14 +287,11 @@ export async function POST(req: Request) {
       });
     }
 
-    // -----------------------
-    // 2) If already completed and user typed actual extra details, capture them + ask Anything else again
-    // -----------------------
+    // 2) If completed and user typed extra details, capture + ask Anything else again
     let effectiveStage: Meta["stage"] = prevStage;
     let effectiveCaptured: Captured = { ...prevCaptured };
 
     if (prevStage === "completed" && !looksLikeNo && !wantsAddMore && lastUserMsg.trim()) {
-      // treat this as extra details
       effectiveStage = "confirm_done";
       effectiveCaptured.notes = appendNotes(effectiveCaptured.notes, lastUserMsg);
     }
@@ -334,17 +361,31 @@ captured=${JSON.stringify(effectiveCaptured)}
       if (ph) mergedCaptured.whatsapp = ph;
     }
 
-    // If extra detail message happened (not "no") while we are in confirm_done/completed, store in notes
+    // If extra detail message happened (not "no") while in confirm_done/completed, store in notes
     if (!looksLikeNo && (effectiveStage === "confirm_done" || effectiveStage === "completed")) {
       mergedCaptured.notes = appendNotes(mergedCaptured.notes, lastUserMsg);
     }
 
-    // ----------------- Guards to keep buttons + flow correct -----------------
+    // ----------------- BUDGET HARD ENFORCEMENT (TOTAL ONLY) -----------------
+    // If the user message looks like per-person budget, do NOT accept it as final.
+    // Ask a single clarification for TOTAL budget.
+    const userUsedPerPerson = mentionsPerPerson(lastUserMsg);
+    const num = extractBudgetNumber(lastUserMsg);
+
+    if (userUsedPerPerson && num !== null) {
+      // Force a clean clarification and prevent "per person" language.
+      stage = "refine";
+      reply = `Just to confirm, is that £${num} total for the whole trip?`;
+      // Don’t lock a per-person value into captured.budget
+      // (we keep previous budget if it existed, but we do NOT overwrite with this)
+    }
+
+    // Also: if the model reply contains "per person", kill it.
+    reply = stripPerPersonPhrases(reply);
+    // ----------------------------------------------------------------------
 
     // confirm_done ONLY when asking Anything else
     if (stage === "confirm_done" && !replyMentionsAnythingElse(reply)) {
-      // If we are here because user added extra details after completion, we WANT to ask Anything else
-      // so force the correct question.
       if (prevStage === "completed") {
         stage = "confirm_done";
         reply = "Perfect, I’ve noted that. Anything else you want to add?";
@@ -378,8 +419,7 @@ captured=${JSON.stringify(effectiveCaptured)}
       reply = `${reply}\n\nPerfect. A Wayloft advisor will reach out shortly.`;
     }
 
-    // If the user just added extra details after completion (prevStage completed),
-    // make sure we end with Anything else (so your Yes/No buttons appear again).
+    // If user just added extra details after completion, end with Anything else again
     if (prevStage === "completed" && !looksLikeNo && !wantsAddMore && lastUserMsg.trim()) {
       stage = "confirm_done";
       reply = "Perfect, I’ve noted that. Anything else you want to add?";
@@ -423,7 +463,7 @@ From City: ${mergedCaptured.fromCity ?? "-"}
 Destination: ${mergedCaptured.destination ?? "-"}
 Dates: ${mergedCaptured.dates ?? "-"}
 Nights: ${mergedCaptured.nights ?? "-"}
-Budget: ${mergedCaptured.budget ?? "-"}
+Budget (TOTAL): ${mergedCaptured.budget ?? "-"}
 Travellers: ${mergedCaptured.travellers ?? "-"}
 Style: ${mergedCaptured.style ?? "-"}
 Priorities: ${mergedCaptured.priorities ?? "-"}

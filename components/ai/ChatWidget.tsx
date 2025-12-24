@@ -117,7 +117,7 @@ export default function ChatWidget() {
       const data = (await res.json()) as { reply?: string; meta?: Meta };
 
       const reply =
-        (data.reply || "").trim() || "Got it. What dates are you travelling and what’s your budget?";
+        (data.reply || "").trim() || "Got it. What dates are you travelling and what’s your total budget for the trip?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
@@ -132,7 +132,6 @@ export default function ChatWidget() {
     }
   }
 
-  // Buttons ONLY when confirm_done AND assistant actually asked "Anything else?"
   const showAnythingElseButtons =
     meta.stage === "confirm_done" && assistantIsAskingAnythingElse(messages) && !loading;
 
@@ -242,7 +241,9 @@ export default function ChatWidget() {
                     if (e.key === "Enter") send();
                   }}
                   placeholder={
-                    showOptionalAddMore ? "Add more details (optional)" : "Eg: Turkey, Jan 14–20, £2k, 2 people"
+                    showOptionalAddMore
+                      ? "Add more details (optional)"
+                      : "Eg: Morocco, Jan 14–20, £2000 total, 2 people"
                   }
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
