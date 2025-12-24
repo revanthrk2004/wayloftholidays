@@ -209,7 +209,7 @@ export default function ChatWidget() {
                   </div>
                 )}
 
-                {showAnythingElseButtons && (
+                 {showAnythingElseButtons && (
                   <div className="flex w-full justify-end gap-2 pt-1">
                     <button
                       onClick={() => send("Yes")}
@@ -225,6 +225,7 @@ export default function ChatWidget() {
                     </button>
                   </div>
                 )}
+
 
                 {showOptionalAddMore && !loading && (
                   <div className="pt-2 text-xs text-(--muted)">
