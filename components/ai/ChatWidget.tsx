@@ -8,26 +8,21 @@ import { cn } from "@/components/ui/cn";
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
-type Captured = {
-  name: string | null;
-  email: string | null;
-  whatsapp: string | null;
-  fromCity: string | null;
-  destination: string | null;
-  dates: string | null;
-  nights: string | null;
-  budget: string | null;
-  travellers: string | null;
-  style: string | null;
-  priorities: string | null;
-  notes: string | null;
+type SessionState = {
+  completed?: boolean;
+  emailed?: boolean;
+  awaitingAnythingElse?: boolean;
+  awaitingMoreDetails?: boolean;
 };
 
-type Meta = {
-  stage?: "intake" | "refine" | "confirm_done" | "completed";
-  captured?: Partial<Captured>;
-  lastEmailHash?: string | null;
-  didEmail?: boolean;
+type ApiResponse = {
+  reply?: string;
+  meta?: {
+    completed?: boolean;
+    askAnythingElse?: boolean;
+    session?: SessionState;
+    captured?: any;
+  };
 };
 
 function makeSessionId() {
@@ -40,17 +35,17 @@ export default function ChatWidget() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [meta, setMeta] = useState<Meta>({
-    stage: "intake",
-    captured: {},
-    lastEmailHash: null,
+  const [session, setSession] = useState<SessionState>({
+    completed: false,
+    emailed: false,
+    awaitingAnythingElse: false,
+    awaitingMoreDetails: false,
   });
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text:
-        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
+      text: "Hi, I’m Wayloft Concierge. Tell me what you want for your trip, and I’ll guide you step by step.",
     },
   ]);
 
@@ -80,7 +75,7 @@ export default function ChatWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, open, loading, meta.stage]);
+  }, [messages, open, loading]);
 
   async function send(customText?: string) {
     const msg = (customText ?? text).trim();
@@ -99,19 +94,21 @@ export default function ChatWidget() {
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
           messages: history,
-          meta, // IMPORTANT: send meta so backend knows if already in confirm_done/completed
+          session,
         }),
       });
 
-      const data = (await res.json()) as { reply?: string; meta?: Meta };
-
+      const data = (await res.json()) as ApiResponse;
       const reply =
         (data.reply || "").trim() ||
-        "Got it. What dates are you travelling and what’s your budget per person?";
+        "Got it. Tell me one more detail and I’ll tailor it perfectly.";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
-      if (data.meta) setMeta((prev) => ({ ...prev, ...data.meta }));
+      // update session from server meta
+      if (data?.meta?.session) {
+        setSession(data.meta.session);
+      }
     } catch {
       setMessages((m) => [
         ...m,
@@ -122,8 +119,8 @@ export default function ChatWidget() {
     }
   }
 
-  const showAnythingElseButtons = meta.stage === "confirm_done";
-  const showOptionalAddMore = meta.stage === "completed";
+  const showAnythingElseButtons = !!session.awaitingAnythingElse;
+  const completed = !!session.completed;
 
   return (
     <>
@@ -198,25 +195,19 @@ export default function ChatWidget() {
                 )}
 
                 {showAnythingElseButtons && !loading && (
-                  <div className="flex w-full justify-end gap-2 pt-1">
+                  <div className="flex w-full justify-start gap-2 pt-1">
                     <button
-                      onClick={() => send("Yes")}
-                      className="rounded-full bg-white px-4 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
+                      onClick={() => send("yes")}
+                      className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
                     >
                       Yes
                     </button>
                     <button
-                      onClick={() => send("No")}
-                      className="rounded-full bg-(--primary) px-4 py-2 text-sm text-white hover:opacity-95"
+                      onClick={() => send("no")}
+                      className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-black/10 hover:bg-black/5"
                     >
                       No
                     </button>
-                  </div>
-                )}
-
-                {showOptionalAddMore && !loading && (
-                  <div className="pt-2 text-xs text-(--muted)">
-                    We’ve saved your details. If you want to add anything, just message here.
                   </div>
                 )}
               </div>
@@ -228,7 +219,7 @@ export default function ChatWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder={showOptionalAddMore ? "Add more details (optional)" : "Eg: Jan, 4 nights, £1.2k, 2 people"}
+                  placeholder={completed ? "Add more details (optional)" : "Eg: Morocco, 12 Jan to 16 Jan, £2000, 2 people"}
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />
                 <button
