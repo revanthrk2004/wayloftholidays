@@ -27,14 +27,24 @@ type Meta = {
   stage?: "intake" | "refine" | "confirm_done" | "completed";
   captured?: Partial<Captured>;
   lastEmailHash?: string | null;
-  lastUpdateHash?: string | null;
   didEmail?: boolean;
-  didUpdateEmail?: boolean;
 };
 
 function makeSessionId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `sess_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+}
+
+function lastAssistantText(messages: ChatMsg[]) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "assistant") return messages[i].text || "";
+  }
+  return "";
+}
+
+function assistantIsAskingAnythingElse(messages: ChatMsg[]) {
+  const t = lastAssistantText(messages);
+  return /anything else you want to add\?/i.test(t);
 }
 
 export default function ChatWidget() {
@@ -46,15 +56,12 @@ export default function ChatWidget() {
     stage: "intake",
     captured: {},
     lastEmailHash: null,
-    lastUpdateHash: null,
-    didEmail: false,
   });
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text:
-        "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
+      text: "Hi, I’m Wayloft Concierge. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
 
@@ -110,8 +117,7 @@ export default function ChatWidget() {
       const data = (await res.json()) as { reply?: string; meta?: Meta };
 
       const reply =
-        (data.reply || "").trim() ||
-        "Got it. Roughly when are you travelling and what’s your budget?";
+        (data.reply || "").trim() || "Got it. What dates are you travelling and what’s your budget?";
 
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
 
@@ -126,7 +132,10 @@ export default function ChatWidget() {
     }
   }
 
-  const showAnythingElseButtons = meta.stage === "confirm_done";
+  // ✅ Buttons ONLY when stage confirm_done AND assistant actually asked "Anything else?"
+  const showAnythingElseButtons =
+    meta.stage === "confirm_done" && assistantIsAskingAnythingElse(messages) && !loading;
+
   const showOptionalAddMore = meta.stage === "completed";
 
   return (
@@ -201,7 +210,7 @@ export default function ChatWidget() {
                   </div>
                 )}
 
-                {showAnythingElseButtons && !loading && (
+                {showAnythingElseButtons && (
                   <div className="flex w-full justify-end gap-2 pt-1">
                     <button
                       onClick={() => send("Yes")}
@@ -233,9 +242,7 @@ export default function ChatWidget() {
                     if (e.key === "Enter") send();
                   }}
                   placeholder={
-                    showOptionalAddMore
-                      ? "Add more details (optional)"
-                      : "Eg: Morocco, Jan 12–16, £2k, 2 people"
+                    showOptionalAddMore ? "Add more details (optional)" : "Eg: Turkey, Jan 14–20, £2k, 2 people"
                   }
                   className="h-11 w-full rounded-2xl bg-white px-4 text-sm outline-none ring-1 ring-black/10 placeholder:text-(--muted) focus:ring-black/20"
                 />

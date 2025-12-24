@@ -27,9 +27,7 @@ type Captured = {
 type Meta = {
   stage?: "intake" | "refine" | "confirm_done" | "completed";
   captured?: Partial<Captured>;
-  lastEmailHash?: string | null;      // for final completed email
-  lastUpdateHash?: string | null;     // for post-completion update emails
-  didEmail?: boolean;                 // whether completed email was sent
+  lastEmailHash?: string | null;
 };
 
 type Body = {
@@ -59,34 +57,41 @@ function buildSystemPrompt() {
   return `
 You are "Wayloft Concierge" for Wayloft Holidays.
 
-Brand + tone:
-- Premium, warm, calm, human. Never sound like a coded robot.
-- If the user greets ("hey", "hi", "how are you"), reply warmly in ONE line, then continue.
-- Ask only what is missing. NEVER repeat questions already answered.
+Tone:
+- Premium, warm, calm, human.
+- Never sound like a coded robot.
+- Ask only what is missing. NEVER repeat answered questions.
+- Ask ONE question per message.
 
-Business rules:
+Destinations:
 - We currently focus on: ${TARGETS.join(", ")}.
-- If user asks outside these, suggest the closest match or ask if open to target countries.
+- If user asks outside these, politely ask if open to one of these.
 
-IMPORTANT flow:
-1) First understand what they want (destination / vibe / dates rough / budget rough / travellers).
-2) Then say: "To proceed, I just need your contact details" and ask for ONLY ONE at a time:
-   - Name → Email → WhatsApp → From City (departure city).
-3) Then ask 1 smart refinement question (style OR priorities), one at a time.
-4) Then give "ideas" (not full day-by-day):
-   - 3 to 6 bullets: areas to stay, 2–3 must-do experiences, realistic notes.
-5) Then ask: "Anything else you want to add?" (YES/NO).
-6) stage="completed" ONLY when user clearly says "no / nothing else / that's all".
-7) When stage becomes completed, reply MUST include: "Perfect. A Wayloft advisor will reach out shortly."
+FLOW (STRICT):
+A) Trip basics first: destination + dates/rough window + travellers + budget (rough is fine).
+B) Then: "To proceed, I just need a few contact details" and ask ONE by ONE:
+   1) Name
+   2) Email
+   3) WhatsApp number
+   4) Departure city (fromCity)  <-- MUST ASK THIS after WhatsApp if missing
+C) Then ask ONE smart refine question at a time (style OR priorities).
+D) Then give "ideas" (not a full day-by-day plan):
+   - 3 to 6 bullets: where to stay (areas), 2–3 experiences, quick practical notes.
+E) Then ask exactly: "Anything else you want to add?" and present YES/NO.
+F) stage="completed" ONLY when the USER clearly says: "no / nothing else / that's all".
 
-Critical anti-repetition:
+EXTRA DETAILS AFTER COMPLETION:
+- If the conversation is completed and the user comes back with extra details, be warm:
+  Ask: "Sure, what would you like to add?" then capture it in notes.
+  After capturing, ask "Anything else you want to add?" again.
+
+ANTI-REPETITION HARD RULES:
 - If captured.whatsapp is present, NEVER ask for WhatsApp again.
 - If captured.email is present, NEVER ask for email again.
 - If captured.name is present, NEVER ask for name again.
-- If captured.fromCity is present, NEVER ask for departure city again.
+- If captured.fromCity is present, NEVER ask for fromCity again.
 
-Output format:
-Return VALID JSON only:
+Output JSON ONLY:
 {
   "stage": "intake" | "refine" | "confirm_done" | "completed",
   "reply": string,
@@ -105,6 +110,12 @@ Return VALID JSON only:
     "notes": string|null
   }
 }
+
+Stage rules:
+- intake: missing key trip basics
+- refine: ask ONE missing detail (including contact fields)
+- confirm_done: only when asking "Anything else you want to add?"
+- completed: ONLY when user says no/nothing else/that's all
 `;
 }
 
@@ -149,18 +160,12 @@ function isProbablyNo(msg: string) {
   ].includes(lower);
 }
 
-function looksLikeAddMoreIntent(msg: string) {
-  const t = msg.toLowerCase();
-  return (
-    t.includes("add") ||
-    t.includes("more detail") ||
-    t.includes("extra") ||
-    t.includes("one more") ||
-    t.includes("update")
-  );
+function isProbablyYes(msg: string) {
+  const lower = msg.toLowerCase().trim();
+  return ["yes", "yep", "yeah", "yup", "sure", "ok", "okay"].includes(lower);
 }
 
-// ---------- Auto-capture helpers ----------
+// ---------- Auto-capture helpers (fixes phone/email repeating) ----------
 function extractEmail(text: string): string | null {
   const m = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   return m ? m[0].trim() : null;
@@ -176,9 +181,11 @@ function normalizePhone(raw: string): string {
 function extractPhone(text: string): string | null {
   const m = text.match(/(\+?\d[\d\s().-]{7,}\d)/);
   if (!m) return null;
+
   const cleaned = normalizePhone(m[0]);
   const digits = cleaned.replace(/[^\d]/g, "");
   if (digits.length < 10) return null;
+
   return cleaned;
 }
 
@@ -198,24 +205,14 @@ function appendNotes(existing: string | null, extra: string) {
   if (e.includes(x)) return existing;
   return e ? `${e}\n\nExtra details: ${x}` : `Extra details: ${x}`;
 }
+// ----------------------------------------------------------------------
 
-function hasTripBasics(c: Captured) {
-  return !!(c.destination && c.dates && c.budget && c.travellers);
+function replyMentionsAnythingElse(reply: string) {
+  return /anything else you want to add\?/i.test(reply);
 }
 
-function nextMissingContact(c: Captured): "name" | "email" | "whatsapp" | "fromCity" | null {
-  if (!c.name) return "name";
-  if (!c.email) return "email";
-  if (!c.whatsapp) return "whatsapp";
-  if (!c.fromCity) return "fromCity";
-  return null;
-}
-
-function contactQuestion(field: "name" | "email" | "whatsapp" | "fromCity") {
-  if (field === "name") return "Lovely. What’s your name?";
-  if (field === "email") return "Perfect. What’s the best email to reach you on?";
-  if (field === "whatsapp") return "Great. What’s your WhatsApp number (with country code if possible)?";
-  return "And which city are you departing from?";
+function replyMentionsAdvisor(reply: string) {
+  return /advisor will reach out/i.test(reply);
 }
 
 export async function POST(req: Request) {
@@ -224,13 +221,10 @@ export async function POST(req: Request) {
 
     const sessionId = safeStr(body.sessionId) || `sess_${Date.now()}`;
     const history = Array.isArray(body.messages) ? body.messages : [];
-
     const prevMeta = body.meta || {};
     const prevStage = prevMeta.stage || "intake";
     const prevCaptured = normalizeCaptured(prevMeta.captured);
     const prevEmailHash = prevMeta.lastEmailHash || null;
-    const prevUpdateHash = prevMeta.lastUpdateHash || null;
-    const prevDidEmail = !!prevMeta.didEmail;
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -249,18 +243,23 @@ export async function POST(req: Request) {
     const lastUserMsg =
       [...history].reverse().find((m) => m.role === "user")?.text?.trim() || "";
 
-    const looksNo = isProbablyNo(lastUserMsg);
+    const looksLikeNo = isProbablyNo(lastUserMsg);
+    const looksLikeYes = isProbablyYes(lastUserMsg);
 
-    // Start from previous captured
+    // If user says YES while we're not at the "anything else" question,
+    // treat it as normal text (don't flip stages / don't end).
+    // We'll just pass to the model, but we will NOT mark completed.
+    // Also: if they come back after completed, we reopen properly.
     let effectiveStage: Meta["stage"] = prevStage;
     let effectiveCaptured: Captured = { ...prevCaptured };
 
-    // If user types after completed:
-    // - If it's "add more" intent -> ask what to add (don’t generate random trip stuff)
-    // - If it's actual content -> save to notes + email update + ask anything else
-    const userIsAfterCompletion = prevStage === "completed";
+    // If user typed after "completed" and it’s NOT a “no”, treat as extra details and reopen.
+    if (prevStage === "completed" && !looksLikeNo && lastUserMsg.trim()) {
+      effectiveStage = "confirm_done";
+      effectiveCaptured.notes = appendNotes(effectiveCaptured.notes, lastUserMsg);
+    }
 
-    // Auto-capture email/phone early (stops repetition)
+    // Auto-capture from raw user message BEFORE model (fixes WhatsApp repetition)
     if (!effectiveCaptured.email) {
       const em = extractEmail(lastUserMsg);
       if (em) effectiveCaptured.email = em;
@@ -270,79 +269,6 @@ export async function POST(req: Request) {
       if (ph) effectiveCaptured.whatsapp = ph;
     }
 
-    // If completed and user wants to add more, handle WITHOUT calling model
-    if (userIsAfterCompletion && !looksNo) {
-      // If they are saying “I want to add extra” but not giving details yet
-      if (looksLikeAddMoreIntent(lastUserMsg) && lastUserMsg.length < 60) {
-        return NextResponse.json({
-          reply: "Of course. What would you like to add or change? Just type it here.",
-          meta: {
-            stage: "confirm_done",
-            captured: effectiveCaptured,
-            lastEmailHash: prevEmailHash,
-            lastUpdateHash: prevUpdateHash,
-            didEmail: prevDidEmail,
-          },
-        });
-      }
-
-      // They actually provided extra details
-      const updatedCaptured = { ...effectiveCaptured };
-      updatedCaptured.notes = appendNotes(updatedCaptured.notes, lastUserMsg);
-
-      // Send UPDATE email (only if completion email already sent earlier)
-      let didUpdateEmail = false;
-      let nextUpdateHash = prevUpdateHash;
-
-      if (prevDidEmail) {
-        const updatePayload = { sessionId, notes: updatedCaptured.notes };
-        const uhash = makeHash(JSON.stringify(updatePayload));
-        if (uhash !== prevUpdateHash) {
-          const subject = `WAYLOFT CHAT UPDATE — ${sessionId.slice(0, 8)} — EXTRA DETAILS`;
-          const text = `WAYLOFT CHAT UPDATE
-
-Session: ${sessionId}
-
-Extra details added:
-${lastUserMsg || "-"}
-
-Updated Notes:
-${updatedCaptured.notes || "-"}
-
-Captured (current):
-Name: ${updatedCaptured.name ?? "-"}
-Email: ${updatedCaptured.email ?? "-"}
-WhatsApp: ${updatedCaptured.whatsapp ?? "-"}
-From City: ${updatedCaptured.fromCity ?? "-"}
-Destination: ${updatedCaptured.destination ?? "-"}
-Dates: ${updatedCaptured.dates ?? "-"}
-Nights: ${updatedCaptured.nights ?? "-"}
-Budget: ${updatedCaptured.budget ?? "-"}
-Travellers: ${updatedCaptured.travellers ?? "-"}
-Style: ${updatedCaptured.style ?? "-"}
-Priorities: ${updatedCaptured.priorities ?? "-"}
-`;
-
-          await sendEmail(subject, text);
-          didUpdateEmail = true;
-          nextUpdateHash = uhash;
-        }
-      }
-
-      return NextResponse.json({
-        reply: `Got it, I’ve added that. Anything else you’d like to include?`,
-        meta: {
-          stage: "confirm_done",
-          captured: updatedCaptured,
-          lastEmailHash: prevEmailHash,
-          lastUpdateHash: nextUpdateHash,
-          didEmail: prevDidEmail,
-          didUpdateEmail,
-        },
-      });
-    }
-
-    // Normal flow (call model)
     const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: "system", content: buildSystemPrompt() },
       {
@@ -357,7 +283,7 @@ captured=${JSON.stringify(effectiveCaptured)}
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.4,
+      temperature: 0.35,
       messages: chatMessages,
       response_format: { type: "json_object" },
     });
@@ -379,14 +305,14 @@ captured=${JSON.stringify(effectiveCaptured)}
         ? parsed.stage
         : "intake";
 
-    let reply: string =
+    let reply =
       typeof parsed?.reply === "string" && parsed.reply.trim()
         ? parsed.reply.trim()
-        : "Tell me where you want to go and roughly when, and I’ll guide you.";
+        : "Tell me what kind of trip you want and where you’re thinking, and I’ll guide you.";
 
     const modelCaptured = normalizeCaptured(parsed?.captured);
 
-    // Merge captured
+    // Merge captured (prev + model + auto-capture safety)
     let mergedCaptured = mergeCaptured(effectiveCaptured, modelCaptured);
 
     // Auto-capture again (final safety)
@@ -399,49 +325,88 @@ captured=${JSON.stringify(effectiveCaptured)}
       if (ph) mergedCaptured.whatsapp = ph;
     }
 
-    // HARD GUARD: enforce one-by-one contact questions in correct order
-    // When trip basics exist, collect contacts cleanly (name -> email -> whatsapp -> fromCity)
-    if (hasTripBasics(mergedCaptured)) {
-      const missing = nextMissingContact(mergedCaptured);
-      if (missing) {
+    // If user is adding extra details (not "no") after confirm_done/completed, store in notes
+    if (!looksLikeNo && (effectiveStage === "confirm_done" || effectiveStage === "completed")) {
+      mergedCaptured.notes = appendNotes(mergedCaptured.notes, lastUserMsg);
+    }
+
+    // ----------------- SERVER-SIDE GUARDS (fix wrong YES/NO place + early completion) -----------------
+
+    // Guard 1: confirm_done must ONLY be used when asking the "anything else" question
+    if (stage === "confirm_done" && !replyMentionsAnythingElse(reply)) {
+      stage = "refine";
+    }
+
+    // Guard 2: completed must ONLY happen when the USER said "no/nothing else"
+    // Also: it's safest if they were previously at confirm_done (they saw the anything else question).
+    // If model tries to complete early, we force it back to confirm_done and ask properly.
+    if (stage === "completed" && !looksLikeNo) {
+      stage = "confirm_done";
+
+      // If model already said advisor line too early, rewrite gently into the correct flow.
+      // Keep it short + premium.
+      reply = `Perfect. I’ve noted that.\n\nAnything else you want to add?`;
+    }
+
+    // Guard 3: if user typed "Yes" at random times, do NOT treat as completion signal.
+    // (This mainly stops weird loops if model gets confused.)
+    if (looksLikeYes && stage === "completed") {
+      stage = "refine";
+    }
+
+    // Guard 4: ensure the flow asks fromCity after WhatsApp (if missing)
+    // If WhatsApp is present and fromCity missing, and the model is moving on, we redirect.
+    const hasWhatsapp = !!mergedCaptured.whatsapp;
+    const missingFromCity = !mergedCaptured.fromCity;
+
+    if (hasWhatsapp && missingFromCity) {
+      const alreadyAskingFromCity =
+        /depart|departure|from which city|leaving from|which city are you flying from/i.test(reply);
+
+      // Only force this if we are not in intake (they already gave enough to reach contact stage)
+      // and the assistant is not currently asking for fromCity.
+      if (!alreadyAskingFromCity && stage !== "intake") {
         stage = "refine";
-        reply = contactQuestion(missing);
+        reply = `Perfect, thank you. Which city will you be departing from?`;
       }
     }
 
-    // If stage becomes completed, enforce the advisor handoff line
-    if (stage === "completed") {
-      // only allow completed if user clearly said no
-      if (!looksNo) {
-        stage = "confirm_done";
-      } else {
-        // ensure the exact line exists
-        const handoff = "Perfect. A Wayloft advisor will reach out shortly.";
-        if (!reply.toLowerCase().includes("advisor will")) {
-          reply = `${handoff}`;
-        } else if (!reply.includes("Perfect.")) {
-          reply = `${handoff}`;
-        }
-      }
+    // Guard 5: when truly completed, always include the advisor handoff line
+    if (stage === "completed" && looksLikeNo && !replyMentionsAdvisor(reply)) {
+      reply = `${reply}\n\nPerfect. A Wayloft advisor will reach out shortly.`;
     }
 
-    // Email only when truly finished (stage completed AND user said no)
-    let didEmail = prevDidEmail;
+    // -----------------------------------------------------------------------------------------------
+
+    // Email rules:
+    // - Email ONLY when stage is completed AND user said NO (conversation truly finished)
+    // - If user later adds extra details and completes again, hash changes -> email again (UPDATED)
+    let didEmail = false;
     let nextEmailHash = prevEmailHash;
 
-    const shouldEmail = stage === "completed" && looksNo;
+    const shouldEmail = stage === "completed" && looksLikeNo;
 
     if (shouldEmail) {
-      const emailPayload = { sessionId, stage: "completed", captured: mergedCaptured };
+      const emailPayload = {
+        sessionId,
+        stage: "completed",
+        captured: mergedCaptured,
+      };
       const hash = makeHash(JSON.stringify(emailPayload));
 
       if (hash !== prevEmailHash) {
-        const subject = `WAYLOFT CHAT LOG — ${sessionId.slice(0, 8)} — COMPLETED`;
-        const text = `WAYLOFT CHAT LOG
+        const isUpdate = prevStage === "completed"; // if they had previously completed, this is an update
+
+        const subject = isUpdate
+          ? `WAYLOFT CHAT UPDATE — ${sessionId.slice(0, 8)} — UPDATED DETAILS`
+          : `WAYLOFT CHAT LOG — ${sessionId.slice(0, 8)} — COMPLETED`;
+
+        const text = `WAYLOFT ${isUpdate ? "UPDATED DETAILS" : "CHAT LOG"}
 
 Session: ${sessionId}
 Stage: completed
 Completed: YES
+${isUpdate ? "Update: YES (customer added extra details after completion)" : ""}
 
 Captured:
 Name: ${mergedCaptured.name ?? "-"}
@@ -460,9 +425,9 @@ Notes: ${mergedCaptured.notes ?? "-"}
 Last user message:
 ${lastUserMsg || "-"}
 
---- Recent history (last 14) ---
+--- Recent history (last 16) ---
 ${history
-  .slice(-14)
+  .slice(-16)
   .map((m) => `${m.role.toUpperCase()}: ${m.text}`)
   .join("\n\n")}
 `;
@@ -479,7 +444,6 @@ ${history
         stage,
         captured: mergedCaptured,
         lastEmailHash: nextEmailHash,
-        lastUpdateHash: prevUpdateHash || null,
         didEmail,
       },
     });
