@@ -207,44 +207,10 @@ export default function IntroLoader({ show, onDone }: Props) {
                   >
                     {/* Plane body (minimal, not lucide icon, looks more “film UI”) */}
                     <div className="-translate-x-1/2 -translate-y-1/2">
-                      <motion.div
-                        className="relative grid h-9 w-9 place-items-center rounded-xl"
-                        initial={reduce ? { scale: 1 } : { scale: 0.9 }}
-                        animate={reduce ? { scale: 1 } : { scale: [0.9, 1.02, 1] }}
-                        transition={{ duration: reduce ? 0.2 : 0.7, ease }}
-                        style={{
-                          background: "rgba(255,255,255,0.06)",
-                          boxShadow:
-                            "0 18px 60px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.14)",
-                          backdropFilter: "blur(10px)",
-                        }}
-                      >
-                        {/* Tiny “wing” shape using CSS */}
-                        <div
-                          className="h-4 w-4 rotate-45 rounded-[5px]"
-                          style={{
-                            background:
-                              "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.60))",
-                            boxShadow: "0 8px 26px rgba(0,0,0,0.35)",
-                            clipPath: "polygon(0 55%, 100% 45%, 55% 100%, 45% 100%)",
-                          }}
-                        />
-                      </motion.div>
-
+                     
                       {/* Heat shimmer behind plane */}
-                      {!reduce && (
-                        <motion.div
-                          className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-20 -translate-x-1/2 -translate-y-1/2"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: [0, 0.55, 0] }}
-                          transition={{ duration: 1.15, ease, delay: tArc + 0.06 }}
-                          style={{
-                            filter: "blur(6px)",
-                            background:
-                              "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), rgba(47,128,193,0.20), transparent)",
-                          }}
-                        />
-                      )}
+                     
+                       
                     </div>
                   </motion.div>
                 </div>
