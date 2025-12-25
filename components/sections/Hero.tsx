@@ -66,9 +66,7 @@ export default function Hero() {
               variants={itemV}
               className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl"
             >
-              <Sparkles className="h-4 w-4 text-var(--secondary)" />
-              <span>Wayloft Signature</span>
-              <span className="h-1 w-1 rounded-full bg-var(--secondary)" />
+              
               <span>#travelwithWayloft</span>
             </motion.div>
 

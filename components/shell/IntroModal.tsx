@@ -44,9 +44,7 @@ export default function IntroModal({
 
             <div className="flex items-center justify-between gap-3 bg-black px-5 py-4">
               <div className="text-sm font-semibold text-white">Wayloft Intro</div>
-              <div className="text-xs text-white/60">
-                Tip: Replace /public/intro.mp4 anytime
-              </div>
+             
             </div>
           </motion.div>
         </motion.div>

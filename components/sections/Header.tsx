@@ -76,9 +76,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <span className="hidden rounded-full bg-(--light) px-3 py-1 text-xs font-semibold text-(--primary) md:inline">
-            #travelwithWayloft
-          </span>
+          
 
           <Link
             href="/plan"
