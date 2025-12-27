@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 type Props = {
@@ -13,12 +13,15 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export default function IntroLoader({ show, onDone }: Props) {
-  const reduce = useReducedMotion();
+  const prefersReduced = useReducedMotion();
 
-  // keep your timing
+  // If you want it to ALWAYS spin even when user has Reduce Motion enabled:
+  // const reduce = false;
+  const reduce = prefersReduced;
+
   const durationMs = reduce ? 650 : 2100;
 
-  // ✅ Prevent double-calls (StrictMode / fast re-renders)
+  // Prevent double-calls (StrictMode / fast re-renders)
   const doneRef = useRef(false);
   const timerRef = useRef<number | null>(null);
 
@@ -45,7 +48,7 @@ export default function IntroLoader({ show, onDone }: Props) {
     };
   }, [show, onDone, durationMs]);
 
-  // Deterministic stars (same as your code)
+  // Deterministic stars
   const stars = useMemo(() => {
     return Array.from({ length: 46 }).map((_, i) => {
       const x = (i * 37) % 100;
@@ -64,25 +67,19 @@ export default function IntroLoader({ show, onDone }: Props) {
   const ringSize = "min(520px, 92vw)";
   const ringStroke = reduce ? 2.25 : 2.6;
 
-  // ✅ SVG transform helpers (this is the missing part for real rotation)
-  const svgSpinStyle: React.CSSProperties = {
-    transformOrigin: "50px 50px", // center of viewBox
-    transformBox: "fill-box",
-  };
-
   return (
     <AnimatePresence mode="wait" initial={false}>
       {show && (
         <motion.div
           key="intro-loader"
-          className="fixed inset-0 z-10000 overflow-hidden"
+          className="fixed inset-0 z-9999 overflow-hidden"
           initial={reduce ? { opacity: 1 } : { opacity: 1, filter: "blur(0px)", scale: 1.03 }}
           animate={reduce ? { opacity: 1 } : { opacity: 1, filter: "blur(0px)", scale: 1.0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(10px)", scale: 0.99 }}
           transition={{ duration: reduce ? 0.25 : 0.75, ease }}
           aria-label="Intro loader"
         >
-          {/* Background: KEEP AS YOU MADE IT */}
+          {/* Background */}
           <div className="absolute inset-0 bg-white" />
 
           <motion.div
@@ -156,7 +153,7 @@ export default function IntroLoader({ show, onDone }: Props) {
                 animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: reduce ? 0.2 : 0.9, ease, delay: tLogoIn }}
               >
-                {/* Glow behind logo (keep your vibe) */}
+                {/* Glow behind logo */}
                 <motion.div
                   className="pointer-events-none absolute -inset-12"
                   style={{
@@ -169,13 +166,20 @@ export default function IntroLoader({ show, onDone }: Props) {
                   transition={{ duration: reduce ? 0.2 : 0.8, ease, delay: tLogoIn + 0.08 }}
                 />
 
-                {/* ✅ LOADING RINGS (NOW ACTUALLY ROTATE) */}
+                {/* ✅ Bulletproof spinner rings */}
                 <div
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
                   style={{ width: ringSize, height: ringSize }}
                   aria-hidden="true"
                 >
-                  <svg viewBox="0 0 100 100" className="h-full w-full">
+                  <motion.svg
+                    viewBox="0 0 100 100"
+                    className="h-full w-full"
+                    // This combo is the reliable SVG rotate fix:
+                    style={{ transformBox: "fill-box", transformOrigin: "50% 50%" }}
+                    animate={reduce ? {} : { rotate: 360 }}
+                    transition={reduce ? undefined : { duration: 2.4, ease: "linear", repeat: Infinity }}
+                  >
                     <defs>
                       <linearGradient id="wlGradA" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0" stopColor="var(--secondary)" stopOpacity="0.95" />
@@ -188,7 +192,7 @@ export default function IntroLoader({ show, onDone }: Props) {
                       </linearGradient>
                     </defs>
 
-                    {/* soft halo ring (static, subtle) */}
+                    {/* soft halo ring (static) */}
                     <circle
                       cx="50"
                       cy="50"
@@ -199,66 +203,64 @@ export default function IntroLoader({ show, onDone }: Props) {
                       opacity={0.55}
                     />
 
-                    {/* Ring 1: rotate clockwise */}
-                    <motion.g
-                      style={svgSpinStyle}
-                      animate={reduce ? {} : { rotate: 360 }}
-                      transition={reduce ? undefined : { duration: 2.6, ease: "linear", repeat: Infinity }}
-                    >
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="36"
-                        fill="none"
-                        stroke="url(#wlGradA)"
-                        strokeWidth={ringStroke}
-                        strokeLinecap="round"
-                        strokeDasharray="18 10"
-                        opacity={0.95}
-                      />
-                    </motion.g>
-
-                    {/* Ring 2: rotate counter-clockwise */}
-                    <motion.g
-                      style={svgSpinStyle}
-                      animate={reduce ? {} : { rotate: -360 }}
-                      transition={reduce ? undefined : { duration: 1.95, ease: "linear", repeat: Infinity }}
-                    >
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="28"
-                        fill="none"
-                        stroke="url(#wlGradB)"
-                        strokeWidth={ringStroke}
-                        strokeLinecap="round"
-                        strokeDasharray="10 14"
-                        opacity={0.85}
-                      />
-                    </motion.g>
-
-                    {/* Ring 3: pulse + dash travel */}
-                    <motion.circle
+                    {/* outer dashed ring */}
+                    <circle
                       cx="50"
                       cy="50"
                       r="42"
                       fill="none"
-                      stroke="rgba(11,60,111,0.40)"
+                      stroke="rgba(11,60,111,0.38)"
                       strokeWidth={ringStroke - 0.3}
                       strokeLinecap="round"
-                      strokeDasharray="4 24"
-                      initial={{ opacity: 0 }}
-                      animate={
-                        reduce
-                          ? { opacity: 0.35 }
-                          : { opacity: [0.12, 0.38, 0.12], strokeDashoffset: [0, -120] }
-                      }
-                      transition={reduce ? { duration: 0.25, ease } : { duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                      strokeDasharray="5 18"
+                      opacity={0.9}
                     />
-                  </svg>
+
+                    {/* ring 1 */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="36"
+                      fill="none"
+                      stroke="url(#wlGradA)"
+                      strokeWidth={ringStroke}
+                      strokeLinecap="round"
+                      strokeDasharray="18 10"
+                      opacity={0.95}
+                    />
+
+                    {/* ring 2 (inside, softer) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="28"
+                      fill="none"
+                      stroke="url(#wlGradB)"
+                      strokeWidth={ringStroke}
+                      strokeLinecap="round"
+                      strokeDasharray="10 14"
+                      opacity={0.85}
+                    />
+                  </motion.svg>
+
+                  {/* ✅ extra “loading dot” orbit for vibe */}
+                  {!reduce && (
+                    <motion.div
+                      className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                      style={{
+                        background:
+                          "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(47,128,193,0.85))",
+                        boxShadow: "0 0 22px rgba(47,128,193,0.35)",
+                      }}
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1.4, ease: "linear", repeat: Infinity }}
+                    >
+                      <div className="absolute -top-55 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full opacity-90" />
+                    </motion.div>
+                  )}
                 </div>
 
-                {/* ✅ Logo: pop from inside + settle + zoom exit */}
+                {/* Logo */}
                 <motion.div
                   className="relative will-change-transform"
                   style={{ transformStyle: "preserve-3d" }}
@@ -322,7 +324,7 @@ export default function IntroLoader({ show, onDone }: Props) {
                 </motion.div>
               </motion.div>
 
-              {/* leaving your typography untouched (still empty) */}
+              {/* (kept empty like your original) */}
               <motion.div
                 className="mx-auto -mt-2 text-center"
                 initial={{ opacity: 0, y: 10 }}
