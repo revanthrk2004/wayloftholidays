@@ -1,10 +1,4 @@
-/* Tailwind v4 entry */
-@import "tailwindcss/preflight";
-@import "tailwindcss/utilities";
-
-/* ============================= */
-/* Design Tokens */
-/* ============================= */
+@import "tailwindcss";
 
 :root{
   --primary:#0B3C6F;
@@ -21,13 +15,7 @@
   --shadow: 0 24px 80px rgba(11, 60, 111, 0.18);
 }
 
-/* ============================= */
-/* Base Styles */
-/* ============================= */
-
-html, body {
-  height: 100%;
-}
+html, body{ height: 100%; }
 
 body{
   background: var(--bg);
@@ -36,31 +24,17 @@ body{
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection{
-  background: rgba(47,128,193,0.18);
-}
-
-/* ============================= */
-/* Scrollbar */
-/* ============================= */
+::selection{ background: rgba(47,128,193,0.18); }
 
 *{
   scrollbar-width: thin;
   scrollbar-color: rgba(11,60,111,0.35) transparent;
 }
-
-*::-webkit-scrollbar{
-  width: 10px;
-  height: 10px;
-}
-
+*::-webkit-scrollbar{ width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb{
   background: rgba(11,60,111,0.35);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
-
-*::-webkit-scrollbar-track{
-  background: transparent;
-}
+*::-webkit-scrollbar-track{ background: transparent; }
