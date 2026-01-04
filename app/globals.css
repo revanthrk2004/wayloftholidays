@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+
+
+.font-heading {
+  font-family: var(--font-heading), ui-serif, Georgia, "Times New Roman", serif;
+}
+
 :root{
   --primary:#0B3C6F;
   --secondary:#2F80C1;
