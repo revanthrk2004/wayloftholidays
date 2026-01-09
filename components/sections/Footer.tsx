@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="text-lg font-black text-(--primary)">
-              Wayloft Holidays
+              WayLoft Holidays
             </div>
             <p className="mt-3 max-w-xs text-sm text-(--muted)">
               Premium, personalised travel experiences designed around you.
@@ -19,7 +19,7 @@ export default function Footer() {
             </p>
 
             <div className="mt-4 text-xs font-semibold text-(--primary)">
-              #travelwithWayloft
+              #travelwithWayLoft
             </div>
           </div>
 
@@ -51,11 +51,11 @@ export default function Footer() {
 
             <div className="mt-4 space-y-3 text-sm text-(--muted)">
               <a
-                href="mailto:hello@wayloftholidays.com"
+                href="mailto:hello@WayLoftholidays.com"
                 className="flex items-center gap-2 hover:text-(--primary)"
               >
                 <Mail className="h-4 w-4" />
-                hello@wayloftholidays.com
+                hello@WayLoftholidays.com
               </a>
 
               <a
@@ -84,7 +84,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-black/5 pt-6 text-xs text-(--muted) md:flex-row">
           <div>
-            © {new Date().getFullYear()} Wayloft Holidays. All rights reserved.
+            © {new Date().getFullYear()} WayLoft Holidays. All rights reserved.
           </div>
           <div>
             Designed with care · London

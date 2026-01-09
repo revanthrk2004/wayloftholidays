@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const KEY = "wayloft_cookie_consent";
+const KEY = "WayLoft_cookie_consent";
 const INTRO_DELAY = 2600; // must be slightly longer than IntroLoader duration
 
 export default function CookieBanner() {

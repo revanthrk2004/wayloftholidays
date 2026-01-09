@@ -10,9 +10,9 @@ export default function TripPlannerBar() {
   function send() {
     const msg =
       text.trim().length > 0
-        ? `Hi Wayloft, please plan this trip: ${text.trim()}`
-        : "Hi Wayloft, I want help planning a trip. Destination, dates, and budget:";
-    window.dispatchEvent(new CustomEvent("wayloft:chat_open", { detail: { prefill: msg } }));
+        ? `Hi WayLoft, please plan this trip: ${text.trim()}`
+        : "Hi WayLoft, I want help planning a trip. Destination, dates, and budget:";
+    window.dispatchEvent(new CustomEvent("WayLoft:chat_open", { detail: { prefill: msg } }));
   }
 
   return (

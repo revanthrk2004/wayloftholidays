@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   return (
     <LegalShell
       title="Privacy Policy"
-      subtitle="How we handle your information when you use Wayloft Holidays."
+      subtitle="How we handle your information when you use WayLoft Holidays."
     >
       <h2>What we collect</h2>
       <p>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
 
       <h2>Contact</h2>
       <p>
-        Privacy questions: <strong>privacy@wayloftholidays.com</strong>
+        Privacy questions: <strong>privacy@WayLoftholidays.com</strong>
       </p>
     </LegalShell>
   );

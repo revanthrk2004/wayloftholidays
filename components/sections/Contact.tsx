@@ -20,7 +20,7 @@ export default function Contact() {
             </Link>
 
             <a
-              href="mailto:hello@wayloftholidays.com"
+              href="mailto:hello@WayLoftholidays.com"
               className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-(--primary) ring-1 ring-black/10 hover:bg-black/2"
             >
               Email us

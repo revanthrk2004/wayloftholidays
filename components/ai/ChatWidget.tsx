@@ -61,7 +61,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi, I’m Wayloft Ai. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
+      text: "Hi, I’m WayLoft Ai. Tell me what kind of trip you want and where you’re thinking. I’ll guide you from there.",
     },
   ]);
 
@@ -79,10 +79,10 @@ export default function ChatWidget() {
 
   useEffect(() => {
   const open = () => setOpen(true); // or whatever state opens the chat
-  window.addEventListener("wayloft:open-ai", open);
+  window.addEventListener("WayLoft:open-ai", open);
 
   return () => {
-    window.removeEventListener("wayloft:open-ai", open);
+    window.removeEventListener("WayLoft:open-ai", open);
   };
 }, []);
 
@@ -94,8 +94,8 @@ export default function ChatWidget() {
       setOpen(true);
       if (prefill) setText(prefill);
     }
-    window.addEventListener("wayloft:chat_open", onOpen as EventListener);
-    return () => window.removeEventListener("wayloft:chat_open", onOpen as EventListener);
+    window.addEventListener("WayLoft:chat_open", onOpen as EventListener);
+    return () => window.removeEventListener("WayLoft:chat_open", onOpen as EventListener);
   }, []);
 
   useEffect(() => {
@@ -170,11 +170,11 @@ export default function ChatWidget() {
             <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 py-3 backdrop-blur-xl">
               <div className="flex items-center gap-3">
                 <div className="relative h-9 w-9 overflow-hidden rounded-xl ring-1 ring-black/10 bg-white">
-                  <Image src="/wayloft-logo.png" alt="Wayloft" fill className="object-cover" priority />
+                  <Image src="/WayLoft-logo.png" alt="WayLoft" fill className="object-cover" priority />
                 </div>
 
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold text-(--primary)">Wayloft Ai</div>
+                  <div className="text-sm font-semibold text-(--primary)">WayLoft Ai</div>
                   <div className="text-xs text-(--muted)">{hint}</div>
                 </div>
               </div>

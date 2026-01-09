@@ -119,8 +119,8 @@ export default function Header() {
             >
               <div className="relative h-10 w-10 overflow-hidden rounded-2xl ring-1 ring-black/10 bg-white">
                 <Image
-                  src="/wayloft-logo.png"
-                  alt="Wayloft Holidays"
+                  src="/WayLoft-logo.png"
+                  alt="WayLoft Holidays"
                   fill
                   sizes="40px"
                   className="object-cover"
@@ -130,11 +130,9 @@ export default function Header() {
 
               <div className="leading-tight">
                 <div className="text-sm font-semibold text-(--primary)">
-                  Wayloft Holidays
+                  WayLoft Holidays
                 </div>
-                <div className="text-xs text-(--muted)">
-                  Trips designed around you
-                </div>
+                
               </div>
             </Link>
 

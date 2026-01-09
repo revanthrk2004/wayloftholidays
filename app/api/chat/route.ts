@@ -55,7 +55,7 @@ const EMPTY_CAPTURED: Captured = {
 
 function buildSystemPrompt() {
   return `
-You are "Wayloft Concierge" for Wayloft Holidays.
+You are "WayLoft Concierge" for WayLoft Holidays.
 
 Tone:
 - Premium, warm, calm, human.
@@ -139,7 +139,7 @@ async function sendEmail(subject: string, text: string) {
   if (!to) throw new Error("LEADS_TO_EMAIL missing");
 
   const from =
-    process.env.LEADS_FROM_EMAIL || "Wayloft Holidays <info@wayloftholidays.com>";
+    process.env.LEADS_FROM_EMAIL || "WayLoft Holidays <info@WayLoftholidays.com>";
 
   await resend.emails.send({ from, to, subject, text });
 }
@@ -416,7 +416,7 @@ captured=${JSON.stringify(effectiveCaptured)}
 
     // When completed, ALWAYS include advisor handoff
     if (stage === "completed" && looksLikeNo && !replyMentionsAdvisor(reply)) {
-      reply = `${reply}\n\nPerfect. A Wayloft advisor will reach out shortly.`;
+      reply = `${reply}\n\nPerfect. A WayLoft advisor will reach out shortly.`;
     }
 
     // If user just added extra details after completion, end with Anything else again
@@ -445,10 +445,10 @@ captured=${JSON.stringify(effectiveCaptured)}
         const isUpdate = prevStage === "completed";
 
         const subject = isUpdate
-          ? `WAYLOFT CHAT UPDATE — ${sessionId.slice(0, 8)} — UPDATED DETAILS`
-          : `WAYLOFT CHAT LOG — ${sessionId.slice(0, 8)} — COMPLETED`;
+          ? `WayLoft CHAT UPDATE — ${sessionId.slice(0, 8)} — UPDATED DETAILS`
+          : `WayLoft CHAT LOG — ${sessionId.slice(0, 8)} — COMPLETED`;
 
-        const text = `WAYLOFT ${isUpdate ? "UPDATED DETAILS" : "CHAT LOG"}
+        const text = `WayLoft ${isUpdate ? "UPDATED DETAILS" : "CHAT LOG"}
 
 Session: ${sessionId}
 Stage: completed

@@ -1,4 +1,4 @@
-// D:\Wayloft Holidays\wayloftholidays\app\lib\trips-data.ts
+// D:\WayLoft Holidays\WayLoftholidays\app\lib\trips-data.ts
 
 export type TripHighlight = {
   name: string;

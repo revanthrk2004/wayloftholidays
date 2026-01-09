@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <LegalShell
       title="Terms of Service"
-      subtitle="These terms explain how the Wayloft Holidays website and trip planning service works."
+      subtitle="These terms explain how the WayLoft Holidays website and trip planning service works."
     >
       <h2>Using the site</h2>
       <p>
@@ -28,7 +28,7 @@ export default function TermsPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions: <strong>support@wayloftholidays.com</strong>
+        Questions: <strong>support@WayLoftholidays.com</strong>
       </p>
     </LegalShell>
   );

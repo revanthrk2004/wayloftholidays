@@ -43,7 +43,7 @@ export default function IntroModal({
             </div>
 
             <div className="flex items-center justify-between gap-3 bg-black px-5 py-4">
-              <div className="text-sm font-semibold text-white">Wayloft Intro</div>
+              <div className="text-sm font-semibold text-white">WayLoft Intro</div>
              
             </div>
           </motion.div>

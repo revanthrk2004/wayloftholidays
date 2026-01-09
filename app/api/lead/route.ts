@@ -19,14 +19,14 @@ export async function POST(req: Request) {
 
     const from =
       process.env.LEADS_FROM_EMAIL ||
-      "Wayloft Holidays <info@wayloftholidays.com>";
+      "WayLoft Holidays <info@WayLoftholidays.com>";
 
     const destination = (body?.destination || "").toString().trim();
-    const subject = `New Wayloft Trip Request${destination ? ` — ${destination}` : ""}`;
+    const subject = `New WayLoft Trip Request${destination ? ` — ${destination}` : ""}`;
 
     const text =
       body?.summary ||
-      `Plan request for Wayloft Holidays:
+      `Plan request for WayLoft Holidays:
 Name: ${body?.name || "-"}
 Email: ${body?.email || "-"}
 WhatsApp: ${body?.whatsapp || "-"}
@@ -40,7 +40,7 @@ Style: ${(body?.style || []).join(", ") || "-"}
 Priorities: ${(body?.priorities || []).join(", ") || "-"}
 Notes: ${body?.notes || "-"}
 
-#travelwithWayloft`;
+#travelwithWayLoft`;
 
     const replyTo = isEmail(body?.email) ? body.email.trim() : undefined;
 

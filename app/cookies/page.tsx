@@ -23,7 +23,7 @@ export default function CookiesPage() {
 
       <h2>Contact</h2>
       <p>
-        Cookies questions: <strong>support@wayloftholidays.com</strong>
+        Cookies questions: <strong>support@WayLoftholidays.com</strong>
       </p>
     </LegalShell>
   );

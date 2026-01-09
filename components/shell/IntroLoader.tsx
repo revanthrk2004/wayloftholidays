@@ -207,7 +207,7 @@ export default function IntroLoader({ show, onDone }: Props) {
                     >
                       <img
                         src="/Photoroom_20251224_131642.png"
-                        alt="Wayloft Holidays"
+                        alt="WayLoft Holidays"
                         className="h-36 w-auto select-none md:h-44 lg:h-52"
                         draggable={false}
                       />

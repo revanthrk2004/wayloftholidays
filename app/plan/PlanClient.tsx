@@ -58,7 +58,7 @@ function buildSummary(form: PlanForm) {
   const style = form.style.length ? form.style.join(", ") : "Any";
   const pri = form.priorities.length ? form.priorities.join(", ") : "Any";
 
-  return `Plan request for Wayloft Holidays:
+  return `Plan request for WayLoft Holidays:
 Name: ${form.name || "-"}
 Email: ${form.email || "-"}
 WhatsApp: ${form.whatsapp || "-"}
@@ -72,7 +72,7 @@ Style: ${style}
 Priorities: ${pri}
 Notes: ${form.notes || "-"}
 
-#travelwithWayloft`;
+#travelwithWayLoft`;
 }
 
 export default function PlanClient() {
@@ -168,9 +168,9 @@ export default function PlanClient() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-(--primary) ring-1 ring-black/10">
                 <Sparkles className="h-4 w-4" />
-                <span>Wayloft Trip Request</span>
+                <span>WayLoft Trip Request</span>
                 <span className="h-1 w-1 rounded-full bg-(--secondary)" />
-                <span>#travelwithWayloft</span>
+                <span>#travelwithWayLoft</span>
               </div>
 
               <h1 className="mt-4 text-3xl font-black tracking-tight text-(--primary) md:text-5xl">

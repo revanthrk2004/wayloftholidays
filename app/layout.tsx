@@ -15,7 +15,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Wayloft Holidays | Trips designed around you",
+  title: "WayLoft Holidays | Trips designed around you",
   description:
     "Premium, personalised trips designed around you. Tell us your vibe, budget, and dates and we’ll craft your perfect holiday.",
 };

@@ -23,7 +23,7 @@ export default function DisclaimerPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions: <strong>support@wayloftholidays.com</strong>
+        Questions: <strong>support@WayLoftholidays.com</strong>
       </p>
     </LegalShell>
   );

@@ -126,7 +126,7 @@ export default function Hero() {
             className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-xl"
           >
             <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
-              Why Wayloft
+              Why WayLoft
             </div>
 
             <div className="mt-2 text-xl font-semibold text-white">
