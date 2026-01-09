@@ -123,7 +123,7 @@ export default function Hero() {
           {/* ===== RIGHT ===== */}
 <motion.div
   variants={itemV}
-  className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-xl
+  className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-sm
              -translate-y-8 md:-translate-y-0"
 >
 

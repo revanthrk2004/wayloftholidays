@@ -68,6 +68,7 @@ export default function Trips() {
           </div>
 
           <div className="relative grid gap-4 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-8">
+            {/* LEFT */}
             <div className="flex flex-col justify-end">
               <div className="inline-flex w-fit items-center rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl">
                 VISIT
@@ -90,7 +91,6 @@ export default function Trips() {
                   Explore
                 </Link>
 
-                {/* ✅ UPDATED AI BUTTON */}
                 <button
                   onClick={() => {
                     window.dispatchEvent(new Event("WayLoft:open-ai"));
@@ -102,21 +102,57 @@ export default function Trips() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            {/* RIGHT: tiles */}
+            {/* Mobile: horizontal scroll row (one-screen vibe). Desktop: 2-col grid like before. */}
+            <div
+              className={[
+                "gap-3",
+                "flex overflow-x-auto pb-1 pr-2 -mr-2",
+                "snap-x snap-mandatory",
+                "sm:grid sm:overflow-visible sm:pb-0 sm:pr-0 sm:mr-0 sm:grid-cols-2",
+              ].join(" ")}
+            >
               {trips.map((t) => {
                 const isActive = t.slug === active.slug;
 
                 return (
-                  <button
+                  <motion.button
                     key={t.slug}
                     onClick={() => setActive(t)}
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    whileTap={{ scale: 0.985 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
                     className={[
-                      "group relative overflow-hidden rounded-3xl text-left ring-1 backdrop-blur-xl transition",
+                      // sizing:
+                      // mobile: fixed card width so it scrolls horizontally
+                      "snap-start shrink-0 w-[78%] xs:w-[70%] sm:w-auto",
+                      // base look:
+                      "group relative overflow-hidden rounded-3xl text-left ring-1 transition",
+                      // ✅ reduced blur here:
+                      "backdrop-blur-[1px]",
                       isActive
-                        ? "bg-white/15 ring-white/25"
+                        ? "bg-white/16 ring-white/30"
                         : "bg-white/10 ring-white/15 hover:bg-white/12",
+                      // focus ring
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                     ].join(" ")}
+                    animate={{
+                      // subtle “selected” motion without changing layout
+                      y: isActive ? -2 : 0,
+                    }}
                   >
+                    {/* subtle animated sheen on hover */}
+                    <motion.div
+                      className="pointer-events-none absolute -inset-16 opacity-0 group-hover:opacity-100"
+                      initial={false}
+                      animate={{ opacity: 1 }}
+                      style={{
+                        background:
+                          "radial-gradient(closest-side, rgba(255,255,255,0.22), transparent 60%)",
+                      }}
+                      transition={{ duration: 0.25 }}
+                    />
+
                     <div className="p-5">
                       <div className="text-[11px] font-semibold tracking-[0.18em] text-white/80">
                         VISIT
@@ -129,12 +165,31 @@ export default function Trips() {
                       <div className="mt-2 text-xs leading-relaxed text-white/75">
                         {t.subtitle}
                       </div>
+
+                      {/* little “selected” hint (only active) */}
+                      <AnimatePresence initial={false}>
+                        {isActive ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            transition={{ duration: 0.18 }}
+                            className="mt-3 text-xs font-semibold text-white/90"
+                          >
+                            Selected
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
                     </div>
 
                     {isActive ? (
-                      <div className="pointer-events-none absolute inset-0 ring-2 ring-white/20" />
+                      <motion.div
+                        layoutId="trip-tile-ring"
+                        className="pointer-events-none absolute inset-0 rounded-3xl ring-2 ring-white/20"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
                     ) : null}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
