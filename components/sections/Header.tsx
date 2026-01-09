@@ -183,17 +183,20 @@ export default function Header() {
                 )}
               </button>
 
-              <Link
-                href="/plan"
-                className={[
-                  "group inline-flex items-center gap-2 rounded-xl",
-                  "bg-(--primary) px-4 py-2 text-sm font-semibold text-white",
-                  "shadow-[0_14px_40px_rgba(11,60,111,0.18)] hover:opacity-95 active:opacity-90",
-                ].join(" ")}
-              >
-                Plan my trip
-                <ArrowUpRight className="h-4 w-4 opacity-90 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </Link>
+<Link
+  href="/plan"
+  className={[
+    "group inline-flex items-center gap-2 rounded-xl",
+    "bg-(--primary) text-white font-semibold shadow-[0_14px_40px_rgba(11,60,111,0.18)] hover:opacity-95 active:opacity-90",
+    "whitespace-nowrap leading-none",         // ✅ stops wrapping + fixes vertical alignment
+    "px-3 py-2 text-sm md:px-4 md:py-2",      // ✅ slightly tighter on mobile, same on desktop
+    "shrink-0",                               // ✅ prevents squishing in tight space
+  ].join(" ")}
+>
+  Plan my trip
+  <ArrowUpRight className="h-4 w-4 shrink-0 opacity-90 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+</Link>
+
             </div>
           </div>
 
