@@ -1,25 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Container from "@/components/ui/Container";
 import Link from "next/link";
-import { motion, AnimatePresence, useReducedMotion, type Transition } from "framer-motion";
-
+import { motion } from "framer-motion";
 import { trips as TRIPS, type Trip } from "@/app/lib/trips-data";
 
 export default function Trips() {
   const trips: Trip[] = useMemo(() => TRIPS, []);
   const [active, setActive] = useState<Trip>(trips[0]);
-  const reduceMotion = useReducedMotion();
 
+  // ✅ refs for mobile auto-swipe
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // ✅ Hard preload + decode (download + decode early)
   useEffect(() => {
     let cancelled = false;
 
     const preload = (src: string) =>
       new Promise<void>((resolve) => {
         const img = new Image();
+        // @ts-ignore
+        img.fetchPriority = "high";
         img.decoding = "async";
-        img.onload = () => resolve();
+        img.onload = async () => {
+          try {
+            // @ts-ignore
+            if (img.decode) await img.decode();
+          } catch {}
+          resolve();
+        };
         img.onerror = () => resolve();
         img.src = src;
       });
@@ -34,13 +45,32 @@ export default function Trips() {
     };
   }, [trips]);
 
-  const bgTransition: Transition = reduceMotion
-    ? { duration: 0 }
-    : { duration: 0.28, ease: [0.22, 1, 0.36, 1] };
+  const isMobile = () =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
 
-  const tileSpring: Transition = reduceMotion
-    ? { duration: 0 }
-    : { type: "spring", stiffness: 260, damping: 26, mass: 0.7 };
+  const scrollActiveIntoView = (index: number) => {
+    const row = rowRef.current;
+    const el = itemRefs.current[index];
+    if (!row || !el) return;
+
+    // Center the tapped card inside the row
+    const left =
+      el.offsetLeft - (row.clientWidth / 2 - el.clientWidth / 2);
+
+    row.scrollTo({
+      left: Math.max(0, left),
+      behavior: "smooth",
+    });
+  };
+
+  const onPickTrip = (t: Trip, index: number) => {
+    setActive(t);
+
+    // ✅ mobile only: auto-swipe to the selected card
+    if (isMobile()) {
+      requestAnimationFrame(() => scrollActiveIntoView(index));
+    }
+  };
 
   return (
     <section id="trips" className="py-20">
@@ -55,28 +85,38 @@ export default function Trips() {
         </div>
 
         <div className="relative mt-10 overflow-hidden rounded-[32px] ring-1 ring-black/10">
-          {/* Background */}
+          {/* ✅ Background layer (ALL images exist, we only fade opacity) */}
           <div className="absolute inset-0">
-            <AnimatePresence mode="sync" initial={false}>
-              <motion.div
-                key={active.slug}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={bgTransition}
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url(${active.image})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  willChange: "opacity",
-                }}
-              />
-            </AnimatePresence>
+            {trips.map((t) => {
+              const activeNow = t.slug === active.slug;
+              return (
+                <div
+                  key={t.slug}
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `url(${t.image})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: activeNow ? 1 : 0,
+                    transition: "opacity 100ms linear", // ✅ faster
+                    willChange: "opacity",
+                    transform: "translateZ(0)",
+                  }}
+                />
+              );
+            })}
 
+            {/* overlays */}
             <div className="absolute inset-0 bg-black/35" />
             <div className="absolute inset-0 [bg-gradient-to-b] from-black/35 via-black/20 to-black/55" />
             <div className="absolute inset-0 opacity-[0.14] bg-[linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-size-[56px_56px]" />
+          </div>
+
+          {/* ✅ Hidden preload imgs (extra insurance) */}
+          <div className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0">
+            {trips.map((t) => (
+              <img key={t.slug} src={t.image} alt="" decoding="async" loading="eager" />
+            ))}
           </div>
 
           {/* Content */}
@@ -106,7 +146,7 @@ export default function Trips() {
 
                 <button
                   onClick={() => window.dispatchEvent(new Event("WayLoft:open-ai"))}
-                  className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
+                  className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-[1px] hover:bg-white/15"
                 >
                   Ask WayLoft AI
                 </button>
@@ -114,55 +154,57 @@ export default function Trips() {
             </div>
 
             {/* RIGHT: tiles */}
-            {/* ✅ Mobile: compact 2-col grid (no swipe). Desktop: stays 2-col grid. */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-              {trips.map((t) => {
+            <div
+              ref={rowRef}
+              className={[
+                "gap-3",
+                // mobile row scroll
+                "flex overflow-x-auto pb-1 pr-2 -mr-2 snap-x snap-mandatory",
+                // ✅ smoother scroll on iOS
+                "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                // desktop grid
+                "sm:grid sm:overflow-visible sm:pb-0 sm:pr-0 sm:mr-0 sm:grid-cols-2",
+              ].join(" ")}
+            >
+              {trips.map((t, idx) => {
                 const isActive = t.slug === active.slug;
 
                 return (
                   <motion.button
                     key={t.slug}
-                    onClick={() => setActive(t)}
-                    // ✅ buttery + cheap (transform only)
-                    whileHover={reduceMotion ? undefined : { y: -2 }}
-                    whileTap={reduceMotion ? undefined : { scale: 0.99 }}
-                    transition={tileSpring}
+                    ref={(el) => {
+                      itemRefs.current[idx] = el;
+                    }}
+                    onClick={() => onPickTrip(t, idx)}
+                    whileHover={{ y: -2, scale: 1.01 }}
+                    whileTap={{ scale: 0.985 }}
+                    transition={{ type: "spring", stiffness: 240, damping: 22, mass: 0.6 }} // ✅ smoother
                     className={[
-                      "group relative overflow-hidden rounded-3xl text-left ring-1",
-                      "transition-[background-color,transform] duration-200",
-                      // ✅ reduce blur more (faster on mobile)
-                      "backdrop-blur-[1px]",
+                      "snap-center shrink-0 w-[78%] sm:w-auto",
+                      "group relative overflow-hidden rounded-3xl text-left ring-1 transition",
+                      // ✅ less blur than before
+                      "backdrop-blur-[0.5px]",
                       isActive
                         ? "bg-white/16 ring-white/30"
                         : "bg-white/10 ring-white/15 hover:bg-white/12",
+                      "will-change-transform",
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                     ].join(" ")}
-                    style={{ willChange: "transform" }}
-                    aria-pressed={isActive}
                   >
-                    <div className="p-4 sm:p-5">
-                      <div className="text-[10px] font-semibold tracking-[0.18em] text-white/80">
+                    <div className="p-5">
+                      <div className="text-[11px] font-semibold tracking-[0.18em] text-white/80">
                         VISIT
                       </div>
 
-                      <div className="font-heading mt-2 text-lg font-semibold text-white sm:text-2xl">
+                      <div className="font-heading mt-2 text-2xl font-semibold text-white">
                         {t.title}
                       </div>
 
-                      {/* ✅ keeps mobile tight: clamp to 2 lines */}
-                      <div className="mt-2 text-[11px] leading-relaxed text-white/75 sm:text-xs line-clamp-2">
+                      <div className="mt-2 text-xs leading-relaxed text-white/75">
                         {t.subtitle}
                       </div>
-
-                      {/* ✅ tiny selected hint only, no layout animations */}
-                      {isActive ? (
-                        <div className="mt-3 text-[11px] font-semibold text-white/90">
-                          Selected
-                        </div>
-                      ) : null}
                     </div>
 
-                    {/* ✅ simple active outline (no layoutId, less jank) */}
                     {isActive ? (
                       <div className="pointer-events-none absolute inset-0 rounded-3xl ring-2 ring-white/20" />
                     ) : null}
