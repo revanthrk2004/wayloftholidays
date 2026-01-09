@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Container from "@/components/ui/Container";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, type Transition } from "framer-motion";
+
 import { trips as TRIPS, type Trip } from "@/app/lib/trips-data";
 
 export default function Trips() {
   const trips: Trip[] = useMemo(() => TRIPS, []);
   const [active, setActive] = useState<Trip>(trips[0]);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -32,6 +34,14 @@ export default function Trips() {
     };
   }, [trips]);
 
+  const bgTransition: Transition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.28, ease: [0.22, 1, 0.36, 1] };
+
+  const tileSpring: Transition = reduceMotion
+    ? { duration: 0 }
+    : { type: "spring", stiffness: 260, damping: 26, mass: 0.7 };
+
   return (
     <section id="trips" className="py-20">
       <Container>
@@ -45,6 +55,7 @@ export default function Trips() {
         </div>
 
         <div className="relative mt-10 overflow-hidden rounded-[32px] ring-1 ring-black/10">
+          {/* Background */}
           <div className="absolute inset-0">
             <AnimatePresence mode="sync" initial={false}>
               <motion.div
@@ -52,12 +63,13 @@ export default function Trips() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.22 }}
+                transition={bgTransition}
                 className="absolute inset-0"
                 style={{
                   backgroundImage: `url(${active.image})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
+                  willChange: "opacity",
                 }}
               />
             </AnimatePresence>
@@ -67,6 +79,7 @@ export default function Trips() {
             <div className="absolute inset-0 opacity-[0.14] bg-[linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-size-[56px_56px]" />
           </div>
 
+          {/* Content */}
           <div className="relative grid gap-4 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-8">
             {/* LEFT */}
             <div className="flex flex-col justify-end">
@@ -92,9 +105,7 @@ export default function Trips() {
                 </Link>
 
                 <button
-                  onClick={() => {
-                    window.dispatchEvent(new Event("WayLoft:open-ai"));
-                  }}
+                  onClick={() => window.dispatchEvent(new Event("WayLoft:open-ai"))}
                   className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
                 >
                   Ask WayLoft AI
@@ -103,15 +114,8 @@ export default function Trips() {
             </div>
 
             {/* RIGHT: tiles */}
-            {/* Mobile: horizontal scroll row (one-screen vibe). Desktop: 2-col grid like before. */}
-            <div
-              className={[
-                "gap-3",
-                "flex overflow-x-auto pb-1 pr-2 -mr-2",
-                "snap-x snap-mandatory",
-                "sm:grid sm:overflow-visible sm:pb-0 sm:pr-0 sm:mr-0 sm:grid-cols-2",
-              ].join(" ")}
-            >
+            {/* ✅ Mobile: compact 2-col grid (no swipe). Desktop: stays 2-col grid. */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
               {trips.map((t) => {
                 const isActive = t.slug === active.slug;
 
@@ -119,75 +123,48 @@ export default function Trips() {
                   <motion.button
                     key={t.slug}
                     onClick={() => setActive(t)}
-                    whileHover={{ y: -3, scale: 1.01 }}
-                    whileTap={{ scale: 0.985 }}
-                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                    // ✅ buttery + cheap (transform only)
+                    whileHover={reduceMotion ? undefined : { y: -2 }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+                    transition={tileSpring}
                     className={[
-                      // sizing:
-                      // mobile: fixed card width so it scrolls horizontally
-                      "snap-start shrink-0 w-[78%] xs:w-[70%] sm:w-auto",
-                      // base look:
-                      "group relative overflow-hidden rounded-3xl text-left ring-1 transition",
-                      // ✅ reduced blur here:
+                      "group relative overflow-hidden rounded-3xl text-left ring-1",
+                      "transition-[background-color,transform] duration-200",
+                      // ✅ reduce blur more (faster on mobile)
                       "backdrop-blur-[1px]",
                       isActive
                         ? "bg-white/16 ring-white/30"
                         : "bg-white/10 ring-white/15 hover:bg-white/12",
-                      // focus ring
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                     ].join(" ")}
-                    animate={{
-                      // subtle “selected” motion without changing layout
-                      y: isActive ? -2 : 0,
-                    }}
+                    style={{ willChange: "transform" }}
+                    aria-pressed={isActive}
                   >
-                    {/* subtle animated sheen on hover */}
-                    <motion.div
-                      className="pointer-events-none absolute -inset-16 opacity-0 group-hover:opacity-100"
-                      initial={false}
-                      animate={{ opacity: 1 }}
-                      style={{
-                        background:
-                          "radial-gradient(closest-side, rgba(255,255,255,0.22), transparent 60%)",
-                      }}
-                      transition={{ duration: 0.25 }}
-                    />
-
-                    <div className="p-5">
-                      <div className="text-[11px] font-semibold tracking-[0.18em] text-white/80">
+                    <div className="p-4 sm:p-5">
+                      <div className="text-[10px] font-semibold tracking-[0.18em] text-white/80">
                         VISIT
                       </div>
 
-                      <div className="font-heading mt-2 text-2xl font-semibold text-white">
+                      <div className="font-heading mt-2 text-lg font-semibold text-white sm:text-2xl">
                         {t.title}
                       </div>
 
-                      <div className="mt-2 text-xs leading-relaxed text-white/75">
+                      {/* ✅ keeps mobile tight: clamp to 2 lines */}
+                      <div className="mt-2 text-[11px] leading-relaxed text-white/75 sm:text-xs line-clamp-2">
                         {t.subtitle}
                       </div>
 
-                      {/* little “selected” hint (only active) */}
-                      <AnimatePresence initial={false}>
-                        {isActive ? (
-                          <motion.div
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 6 }}
-                            transition={{ duration: 0.18 }}
-                            className="mt-3 text-xs font-semibold text-white/90"
-                          >
-                            Selected
-                          </motion.div>
-                        ) : null}
-                      </AnimatePresence>
+                      {/* ✅ tiny selected hint only, no layout animations */}
+                      {isActive ? (
+                        <div className="mt-3 text-[11px] font-semibold text-white/90">
+                          Selected
+                        </div>
+                      ) : null}
                     </div>
 
+                    {/* ✅ simple active outline (no layoutId, less jank) */}
                     {isActive ? (
-                      <motion.div
-                        layoutId="trip-tile-ring"
-                        className="pointer-events-none absolute inset-0 rounded-3xl ring-2 ring-white/20"
-                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                      />
+                      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-2 ring-white/20" />
                     ) : null}
                   </motion.button>
                 );
