@@ -133,7 +133,7 @@ export default function Header() {
                   Wayloft Holidays
                 </div>
                 <div className="text-xs text-(--muted)">
-                  Trips designed around you
+                  
                 </div>
               </div>
             </Link>
