@@ -121,10 +121,12 @@ export default function Hero() {
           </div>
 
           {/* ===== RIGHT ===== */}
-          <motion.div
-            variants={itemV}
-            className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-xl"
-          >
+<motion.div
+  variants={itemV}
+  className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-xl
+             -translate-y-8 md:-translate-y-0"
+>
+
             <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
               Why WayLoft
             </div>
