@@ -184,13 +184,13 @@ export default function Header() {
               <Link
                 href="/plan"
                 className={[
-                  "group inline-flex items-center gap-2 rounded-xl",
-                  "bg-(--primary) px-4 py-2 text-sm font-semibold text-white",
+                  "group inline-flex items-center gap-1 rounded-xl",
+                  "bg-(--primary) px-5 py-2 text-sm font-semibold text-white",
                   "shadow-[0_14px_40px_rgba(11,60,111,0.18)] hover:opacity-95 active:opacity-90",
                 ].join(" ")}
               >
                 Plan my trip
-                <ArrowUpRight className="h-4 w-4 opacity-90 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRight className="h-7 w-7 opacity-90 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Link>
             </div>
           </div>
