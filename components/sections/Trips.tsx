@@ -90,14 +90,14 @@ export default function Trips() {
                   Explore
                 </Link>
 
+                {/* ✅ UPDATED AI BUTTON */}
                 <button
                   onClick={() => {
-                    const el = document.getElementById("contact");
-                    el?.scrollIntoView({ behavior: "smooth" });
+                    window.dispatchEvent(new Event("wayloft:open-ai"));
                   }}
                   className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
                 >
-                  Ask Wayloft Ai
+                  Ask Wayloft AI
                 </button>
               </div>
             </div>

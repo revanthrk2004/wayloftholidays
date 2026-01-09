@@ -76,6 +76,17 @@ export default function ChatWidget() {
     return "Evening travel vibes. Where to next?";
   }, []);
 
+
+  useEffect(() => {
+  const open = () => setOpen(true); // or whatever state opens the chat
+  window.addEventListener("wayloft:open-ai", open);
+
+  return () => {
+    window.removeEventListener("wayloft:open-ai", open);
+  };
+}, []);
+
+
   useEffect(() => {
     function onOpen(e: Event) {
       const ce = e as CustomEvent<{ prefill?: string }>;

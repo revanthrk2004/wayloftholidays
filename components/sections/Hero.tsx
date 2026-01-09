@@ -3,7 +3,7 @@
 import Container from "@/components/ui/Container";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { useState } from "react";
 import IntroModal from "@/components/shell/IntroModal";
 
@@ -13,17 +13,16 @@ const containerV = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.12, delayChildren: 0.15 },
   },
 };
 
 const itemV = {
-  hidden: { opacity: 0, y: 14, filter: "blur(8px)" },
+  hidden: { opacity: 0, y: 22 },
   show: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.8, ease },
+    transition: { duration: 0.9, ease },
   },
 };
 
@@ -31,11 +30,15 @@ export default function Hero() {
   const [openIntro, setOpenIntro] = useState(false);
 
   return (
-    <section className="relative overflow-hidden">
-      {/* FULL VIDEO BACKGROUND */}
+    <section className="relative min-h-[99vh] overflow-hidden -mt-22">
+      {/* ✅ fills the top behind the floating header so no white shows */}
+<div className="absolute inset-x-0 top-0 h-28 bg-black" />
+
+      {/* ===== Background (covers BEHIND the fixed header too) ===== */}
       <div className="absolute inset-0">
         <video
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-top"
+
           autoPlay
           muted
           loop
@@ -45,105 +48,102 @@ export default function Hero() {
           <source src="/intro.mp4" type="video/mp4" />
         </video>
 
-        {/* Darken + soften for readability */}
-        <div className="absolute inset-0 bg-black/45" />
-        <div className="absolute inset-0 [bg-gradient-to-b] from-black/50 via-black/35 to-black/65" />
+        {/* cinematic layers */}
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/25 to-black/70" />
 
-        {/* subtle grid */}
-        <div className="absolute inset-0 opacity-[0.18] bg-[linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-size-[56px_56px]" />
+        {/* ✅ extra top blend so header area never looks “white” */}
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 to-transparent" />
       </div>
 
-      <Container className="relative py-16 md:py-24">
+      {/* ===== Content ===== */}
+      {/* ✅ padding-top pushes content below your fixed header */}
+      <Container className="relative flex min-h-[92vh] items-center pt-[96px]">
         <motion.div
           variants={containerV}
           initial="hidden"
           animate="show"
-          className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]"
+          className="grid w-full items-center gap-16 lg:grid-cols-[1.2fr_0.8fr]"
         >
-          {/* LEFT TEXT */}
-          <div>
+          {/* ===== LEFT ===== */}
+          <div className="relative">
+            <div className="pointer-events-none absolute -left-24 -top-24 h-[420px] w-[420px] rounded-full bg-white/10 blur-[120px]" />
+
             <motion.div
-              variants={itemV}
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl"
+             
             >
               
-              <span>#travelwithWayloft</span>
             </motion.div>
 
             <motion.h1
               variants={itemV}
-              className="mt-6 text-4xl font-black tracking-tight text-white md:text-6xl"
+              className="mt-8 max-w-2xl font-heading text-5xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
             >
-              Your next holiday, designed around you.
+              Travel,
+              <span className="block text-white/70">without the stress.</span>
             </motion.h1>
 
             <motion.p
               variants={itemV}
-              className="mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
+              className="mt-6 max-w-xl text-lg leading-relaxed text-white/80"
             >
-              Premium itineraries, unforgettable stays, and zero-stress planning.
-              Tell us your vibe, budget, and dates, and we craft a trip that actually feels like you.
+              We design premium trips around how you actually want to travel. No
+              generic packages. No guesswork. Just trips that feel right.
             </motion.p>
 
-            <motion.div variants={itemV} className="mt-7 flex flex-wrap items-center gap-3">
+            <motion.div
+              variants={itemV}
+              className="mt-10 flex flex-wrap items-center gap-4"
+            >
               <Link
                 href="/plan"
-                className="group inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-var(--primary) shadow-[0_18px_60px_rgba(0,0,0,0.25)] hover:opacity-95 active:opacity-90"
+                className="group inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-semibold text-(--primary) shadow-[0_20px_70px_rgba(0,0,0,0.35)] hover:opacity-95"
               >
                 Start planning
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
 
               <button
                 onClick={() => setOpenIntro(true)}
-                className="group inline-flex items-center gap-2 rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-7 py-4 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
               >
                 <Play className="h-4 w-4" />
                 Watch intro
               </button>
             </motion.div>
 
-            <motion.div variants={itemV} className="mt-7 flex flex-wrap gap-3 text-xs text-white/75">
-              <span className="rounded-full bg-white/10 px-3 py-2 ring-1 ring-white/15 backdrop-blur-xl">
-                Custom itineraries
-              </span>
-              <span className="rounded-full bg-white/10 px-3 py-2 ring-1 ring-white/15 backdrop-blur-xl">
-                Luxury stays
-              </span>
-              <span className="rounded-full bg-white/10 px-3 py-2 ring-1 ring-white/15 backdrop-blur-xl">
-                24/7 WhatsApp support
-              </span>
+            <motion.div
+              variants={itemV}
+              className="mt-10 flex flex-wrap gap-3 text-xs text-white/75"
+            >
+              
             </motion.div>
           </div>
 
-          {/* RIGHT GLASS CARD */}
+          {/* ===== RIGHT ===== */}
           <motion.div
             variants={itemV}
-            className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/15 backdrop-blur-xl"
+            className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-xl"
           >
-            <div className="text-sm font-semibold text-white">Why Wayloft feels different</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
+              Why Wayloft
+            </div>
 
-            <div className="mt-4 space-y-3 text-sm text-white/80">
-              <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                <div className="font-semibold text-white">Premium planning</div>
-                <div className="mt-1 text-xs text-white/75">
-                  Not a generic package site. Built around your taste.
-                </div>
-              </div>
+            <div className="mt-2 text-xl font-semibold text-white">
+              Designed for people who care how they travel
+            </div>
 
-              <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                <div className="font-semibold text-white">Safety-first suggestions</div>
-                <div className="mt-1 text-xs text-white/75">
-                  Designed around comfort, logistics, and your priorities.
+            <div className="mt-8 space-y-6">
+              {[
+                { title: "No templates", desc: "Every trip starts from scratch, built around you." },
+                { title: "Taste over trends", desc: "We optimise for comfort, beauty, and flow." },
+                { title: "One clear next step", desc: "Tell us what you want. We do the thinking." },
+              ].map((x) => (
+                <div key={x.title} className="border-l border-white/20 pl-4">
+                  <div className="font-semibold text-white">{x.title}</div>
+                  <div className="mt-1 text-sm text-white/75">{x.desc}</div>
                 </div>
-              </div>
-
-              <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                <div className="font-semibold text-white">Best next step</div>
-                <div className="mt-1 text-xs text-white/75">
-                  Click Start planning and we’ll prefill your request into the concierge.
-                </div>
-              </div>
+              ))}
             </div>
           </motion.div>
         </motion.div>

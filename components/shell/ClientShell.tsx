@@ -2,19 +2,24 @@
 
 import { useEffect, useState } from "react";
 import IntroLoader from "@/components/shell/IntroLoader";
+import Header from "@/components/sections/Header";
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
-    // show every time page loads/reloads
     setShowIntro(true);
   }, []);
 
   return (
     <>
       <IntroLoader show={showIntro} onDone={() => setShowIntro(false)} />
-      {children}
+
+      {/* ✅ Global header (always visible) */}
+      <Header />
+
+      {/* ✅ Push content down so header doesn’t cover it */}
+      <main className="pt-[88px]">{children}</main>
     </>
   );
 }

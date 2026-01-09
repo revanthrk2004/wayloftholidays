@@ -101,7 +101,7 @@ export const trips: Trip[] = [
     title: "Montenegro",
     subtitle: "Old towns, sea views, and slow luxury by the bay.",
     image: "/trips/montenegro.jpg",
-    thumb: "/trips/montenegro-square.jpg",
+    thumb: "/trips/spots/montenegro-kotor.jpg",
     about:
       "Montenegro is a hidden gem where dramatic mountains meet the Adriatic Sea. Medieval towns, alpine lakes, and unspoiled coastline combine to offer travellers a mix of history, culture, and natural beauty in a compact, accessible destination.",
     highlights: [
@@ -184,7 +184,7 @@ export const trips: Trip[] = [
     title: "Turkey",
     subtitle: "Cappadocia balloons, bazaars, and blue coastlines.",
     image: "/trips/turkey.jpg",
-    thumb: "/trips/turkey-square.jpg",
+    thumb: "/trips/spots/turkey-istanbul.jpg",
     about:
       "Turkey is one of the world’s most visited destinations, offering a rich blend of history, culture, and diverse landscapes. From iconic cities and ancient ruins to unique natural wonders and scenic coastlines, it attracts travellers from around the globe seeking memorable experiences.",
     highlights: [
