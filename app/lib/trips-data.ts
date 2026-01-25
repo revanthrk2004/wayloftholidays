@@ -74,25 +74,47 @@ export const trips: Trip[] = [
     image: "/trips/albania.jpg",
     thumb: "/trips/albania-square.jpg",
     about:
-      "Albania is seriously underrated. Think turquoise water, quiet beaches, mountain views, and affordable luxury. It’s best for relaxed travellers who still want that ‘wow’ scenery.",
+      "Albania is a stunning destination where rugged mountains meet the turquoise Adriatic and Ionian seas. Historic towns, crystal-clear lakes, and unspoiled coastline come together to offer travellers a refined mix of history, culture, and natural beauty in a compact, accessible country. Authentic culture, breathtaking landscapes, and experiences await around every corner.",
     highlights: [
       {
-        name: "Ksamil Beaches",
-        image: "/trips/spots/albania-ksamil.jpg",
+        name: "Tirana",
+        image: "/trips/spots/albania-tirana.jpg",
         description:
-          "Turquoise water and a laid-back beach vibe. Perfect for slow mornings, light lunches, and a swim that actually feels like a reset.",
+          "The lively capital blends modern energy with historical charm. Colourful streets, cultural landmarks, and bustling cafés reflect the city’s vibrant lifestyle and evolving identity, creating an energetic yet welcoming urban atmosphere.",
       },
       {
-        name: "Berat (City of a Thousand Windows)",
+        name: "Berat",
         image: "/trips/spots/albania-berat.jpg",
         description:
-          "A charming historic town with calm streets and beautiful views. Ideal for a cultural day that feels cosy and not exhausting.",
+          "Known as the “town of a thousand windows,” Berat’s Ottoman-era houses and hilltop castle form one of Albania’s most picturesque historic settings. Visitors can admire panoramic views and a strong sense of heritage.",
       },
       {
-        name: "Theth National Park",
-        image: "/trips/spots/albania-theth.jpg",
+        name: "Gjirokastër",
+        image: "/trips/spots/albania-gjirokaster.jpg",
         description:
-          "Mountains, fresh air, and that ‘I’m really living’ feeling. Great if you want one nature-heavy day without turning it into a hardcore trek trip.",
+          "A UNESCO-listed stone city set on a hillside. Visitors can wander cobbled streets, discover traditional houses, and explore the fortress highlighting Albania’s architectural heritage.",
+      },
+      {
+        name: "Ksamil",
+        image: "/trips/spots/albania-ksamil.jpg",
+        description:
+          "A coastal highlight known for turquoise waters and small offshore islands. Calm beaches and clear seas define Albania’s relaxed seaside appeal, perfect for peaceful coastal escapes.",
+      },
+            {
+        name: "Shkodër",
+        image: "/trips/spots/albania-shkoder.jpg",
+        description:
+          "A cultural city near Lake Shkodër and the Albanian Alps. The city offers historic landmarks such as Rozafa Castle, a scenic lakeside setting, and serves as a gateway to the Valbona Valley and the Jezerca mountain region.",
+      },      {
+        name: "Butrint",
+        image: "/trips/spots/albania-butrint.jpg",
+        description:
+          "An ancient archaeological site surrounded by nature. Greek, Roman, and Byzantine ruins sit within a peaceful wetland landscape, combining history with tranquil natural beauty in a protected heritage environment.",
+      },      {
+        name: "The Albanian Riviera",
+        image: "/trips/spots/albania-riviera.jpg",
+        description:
+          "A stunning stretch of coastline with dramatic cliffs and clear blue waters. Scenic beaches and coastal roads showcase Albania’s Mediterranean beauty, offering breathtaking views and relaxed seaside charm.",
       },
     ],
   },
