@@ -1,5 +1,4 @@
 
-export const revalidate = 0;
 
 
 import Header from "@/components/sections/Header";
@@ -10,6 +9,8 @@ import About from "@/components/sections/About";
 import Contact from "@/components/sections/Contact";
 
 import { getHomeData } from "@/sanity/lib/queries";
+
+export const revalidate = 5;
 
 export default async function Home() {
   const home = await getHomeData();

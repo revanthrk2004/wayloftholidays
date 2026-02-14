@@ -62,5 +62,5 @@ export async function getHomeData(): Promise<HomeData | null> {
     contactWhatsapp
   }`;
 
-  return sanityClient.fetch(query);
+  return sanityClient.fetch(query, {}, { next: { revalidate: 5 } });
 }
