@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import IntroLoader from "@/components/shell/IntroLoader";
 import Header from "@/components/sections/Header";
 
+import "@/app/lib/builder-registry";
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const [showIntro, setShowIntro] = useState(true);
 

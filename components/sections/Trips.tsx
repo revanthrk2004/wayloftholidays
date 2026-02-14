@@ -3,20 +3,71 @@
 import { useEffect, useMemo, useState } from "react";
 import Container from "@/components/ui/Container";
 import Link from "next/link";
-import { motion, AnimatePresence, useReducedMotion, type Transition } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useReducedMotion,
+  type Transition,
+} from "framer-motion";
 
 import { trips as TRIPS, type Trip } from "@/app/lib/trips-data";
 
-export default function Trips() {
-  const trips: Trip[] = useMemo(() => TRIPS, []);
-  const [active, setActive] = useState<Trip>(trips[0]);
+import type { HomeData, HomeTrip } from "@/sanity/lib/queries";
+import { urlFor } from "@/sanity/lib/image";
+
+function getImageUrl(img: any) {
+  if (!img) return "";
+  try {
+    return urlFor(img).width(2200).quality(85).url();
+  } catch {
+    return "";
+  }
+}
+
+export default function Trips({ cms }: { cms?: HomeData }) {
   const reduceMotion = useReducedMotion();
 
+  // ✅ Use Sanity trips if available, else fallback to local TRIPS
+  const trips: Trip[] = useMemo(() => {
+    const cmsTrips: HomeTrip[] = cms?.trips?.filter(Boolean) ?? [];
+
+    if (cmsTrips.length) {
+      const mapped = cmsTrips
+        .map((t) => {
+          const slug = (t.slug ?? "").trim();
+          const image = getImageUrl(t.image);
+
+          if (!slug || !t.title || !image) return null;
+
+          return {
+            slug,
+            title: t.title,
+            subtitle: t.subtitle ?? "",
+            image,
+          } as Trip;
+        })
+        .filter(Boolean) as Trip[];
+
+      if (mapped.length) return mapped;
+    }
+
+    return TRIPS;
+  }, [cms]);
+
+  const [active, setActive] = useState<Trip>(trips[0]);
+
+  // ✅ If trips list changes (CMS loads), reset active safely
+  useEffect(() => {
+    setActive(trips[0]);
+  }, [trips]);
+
+  // ✅ Preload images
   useEffect(() => {
     let cancelled = false;
 
     const preload = (src: string) =>
       new Promise<void>((resolve) => {
+        if (!src) return resolve();
         const img = new Image();
         img.decoding = "async";
         img.onload = () => resolve();
@@ -36,7 +87,7 @@ export default function Trips() {
 
   const bgTransition: Transition = reduceMotion
     ? { duration: 0 }
-    : { duration: 0.28, ease: [0.22, 1, 0.36, 1] };
+    : { duration: 0.22, ease: [0.22, 1, 0.36, 1] };
 
   const tileSpring: Transition = reduceMotion
     ? { duration: 0 }
@@ -47,10 +98,11 @@ export default function Trips() {
       <Container>
         <div className="max-w-2xl">
           <h2 className="font-heading text-3xl font-semibold tracking-tight text-(--primary)">
-            Trips
+            {cms?.tripsHeading?.trim() || "Trips"}
           </h2>
           <p className="mt-3 text-(--muted)">
-            Tap a destination. The vibe changes instantly. Then hit Explore when it feels right.
+            {cms?.tripsSubtitle?.trim() ||
+              "Tap a destination. The vibe changes instantly. Then hit Explore when it feels right."}
           </p>
         </div>
 
@@ -105,7 +157,9 @@ export default function Trips() {
                 </Link>
 
                 <button
-                  onClick={() => window.dispatchEvent(new Event("WayLoft:open-ai"))}
+                  onClick={() =>
+                    window.dispatchEvent(new Event("WayLoft:open-ai"))
+                  }
                   className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
                 >
                   Ask WayLoft AI
@@ -113,8 +167,7 @@ export default function Trips() {
               </div>
             </div>
 
-            {/* RIGHT: tiles */}
-            {/* ✅ Mobile: compact 2-col grid (no swipe). Desktop: stays 2-col grid. */}
+            {/* RIGHT: tiles (mobile stays 2x2, no swipe) */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
               {trips.map((t) => {
                 const isActive = t.slug === active.slug;
@@ -123,14 +176,12 @@ export default function Trips() {
                   <motion.button
                     key={t.slug}
                     onClick={() => setActive(t)}
-                    // ✅ buttery + cheap (transform only)
                     whileHover={reduceMotion ? undefined : { y: -2 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.99 }}
                     transition={tileSpring}
                     className={[
                       "group relative overflow-hidden rounded-3xl text-left ring-1",
                       "transition-[background-color,transform] duration-200",
-                      // ✅ reduce blur more (faster on mobile)
                       "backdrop-blur-[1px]",
                       isActive
                         ? "bg-white/16 ring-white/30"
@@ -149,12 +200,10 @@ export default function Trips() {
                         {t.title}
                       </div>
 
-                      {/* ✅ keeps mobile tight: clamp to 2 lines */}
                       <div className="mt-2 text-[11px] leading-relaxed text-white/75 sm:text-xs line-clamp-2">
                         {t.subtitle}
                       </div>
 
-                      {/* ✅ tiny selected hint only, no layout animations */}
                       {isActive ? (
                         <div className="mt-3 text-[11px] font-semibold text-white/90">
                           Selected
@@ -162,7 +211,6 @@ export default function Trips() {
                       ) : null}
                     </div>
 
-                    {/* ✅ simple active outline (no layoutId, less jank) */}
                     {isActive ? (
                       <div className="pointer-events-none absolute inset-0 rounded-3xl ring-2 ring-white/20" />
                     ) : null}

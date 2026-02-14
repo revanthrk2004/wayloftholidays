@@ -4,8 +4,11 @@ import Container from "@/components/ui/Container";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Play } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import IntroModal from "@/components/shell/IntroModal";
+
+import type { HomeData } from "@/sanity/lib/queries";
+import { urlFor } from "@/sanity/lib/image";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -26,38 +29,77 @@ const itemV = {
   },
 };
 
-export default function Hero() {
+function getFileUrl(file: any): string {
+  // Sanity file field usually looks like: { asset: { url } }
+  const url = file?.asset?.url;
+  if (typeof url === "string" && url.length) return url;
+
+  // sometimes people store string directly
+  if (typeof file === "string" && file.length) return file;
+
+  return "";
+}
+
+export default function Hero({ cms }: { cms?: HomeData }) {
   const [openIntro, setOpenIntro] = useState(false);
+
+  // ✅ CMS values with safe fallbacks
+  const heroTitle = useMemo(() => {
+    return (cms?.heroTitle?.trim() || "Travel,\nwithout the stress.").trim();
+  }, [cms?.heroTitle]);
+
+  const heroSubtitle = useMemo(() => {
+    return (
+      cms?.heroSubtitle?.trim() ||
+      "We design premium trips around how you actually want to travel. No generic packages. No guesswork. Just trips that feel right."
+    );
+  }, [cms?.heroSubtitle]);
+
+  const poster = useMemo(() => {
+    if (cms?.heroPoster) {
+      return urlFor(cms.heroPoster).width(1800).quality(85).url();
+    }
+    return "/intro-poster.jpg";
+  }, [cms?.heroPoster]);
+
+  const videoSrc = useMemo(() => {
+    const cmsVideo = getFileUrl(cms?.heroVideo);
+    return cmsVideo || "/intro.mp4";
+  }, [cms?.heroVideo]);
+
+  // allow either:
+  // 1) "Travel,\nwithout the stress."
+  // 2) "Travel, without the stress."
+  const [line1Raw, ...rest] = heroTitle.split("\n");
+  const line1 = (line1Raw || "Travel,").trim();
+  const line2 = (rest.join("\n").trim() || "without the stress.").trim();
 
   return (
     <section className="relative min-h-[99vh] overflow-hidden -mt-22">
-      {/* ✅ fills the top behind the floating header so no white shows */}
-<div className="absolute inset-x-0 top-0 h-28 bg-black" />
+      {/* fills top behind floating header */}
+      <div className="absolute inset-x-0 top-0 h-28 bg-black" />
 
-      {/* ===== Background (covers BEHIND the fixed header too) ===== */}
+      {/* Background */}
       <div className="absolute inset-0">
         <video
           className="h-full w-full object-cover object-top"
-
           autoPlay
           muted
           loop
           playsInline
-          poster="/intro-poster.jpg"
+          preload="auto"
+          poster={poster}
         >
-          <source src="/intro.mp4" type="video/mp4" />
+          <source src={videoSrc} type="video/mp4" />
         </video>
 
         {/* cinematic layers */}
         <div className="absolute inset-0 bg-black/50" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/25 to-black/70" />
-
-        {/* ✅ extra top blend so header area never looks “white” */}
         <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 to-transparent" />
       </div>
 
-      {/* ===== Content ===== */}
-      {/* ✅ padding-top pushes content below your fixed header */}
+      {/* Content */}
       <Container className="relative flex min-h-[92vh] items-center pt-[96px]">
         <motion.div
           variants={containerV}
@@ -65,30 +107,23 @@ export default function Hero() {
           animate="show"
           className="grid w-full items-center gap-16 lg:grid-cols-[1.2fr_0.8fr]"
         >
-          {/* ===== LEFT ===== */}
+          {/* LEFT */}
           <div className="relative">
             <div className="pointer-events-none absolute -left-24 -top-24 h-[420px] w-[420px] rounded-full bg-white/10 blur-[120px]" />
-
-            <motion.div
-             
-            >
-              
-            </motion.div>
 
             <motion.h1
               variants={itemV}
               className="mt-8 max-w-2xl font-heading text-5xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
             >
-              Travel,
-              <span className="block text-white/70">without the stress.</span>
+              {line1}
+              <span className="block text-white/70">{line2}</span>
             </motion.h1>
 
             <motion.p
               variants={itemV}
               className="mt-6 max-w-xl text-lg leading-relaxed text-white/80"
             >
-              We design premium trips around how you actually want to travel. No
-              generic packages. No guesswork. Just trips that feel right.
+              {heroSubtitle}
             </motion.p>
 
             <motion.div
@@ -111,22 +146,13 @@ export default function Hero() {
                 Watch intro
               </button>
             </motion.div>
-
-            <motion.div
-              variants={itemV}
-              className="mt-10 flex flex-wrap gap-3 text-xs text-white/75"
-            >
-              
-            </motion.div>
           </div>
 
-          {/* ===== RIGHT ===== */}
-<motion.div
-  variants={itemV}
-  className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-sm
-             -translate-y-8 md:-translate-y-0"
->
-
+          {/* RIGHT */}
+          <motion.div
+            variants={itemV}
+            className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-sm -translate-y-8 md:-translate-y-0"
+          >
             <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
               Why WayLoft
             </div>
