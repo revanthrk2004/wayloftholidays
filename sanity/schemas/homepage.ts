@@ -1,4 +1,4 @@
-import { defineType, defineField } from "sanity";
+import { defineType, defineField, defineArrayMember } from "sanity";
 
 export default defineType({
   name: "homepage",
@@ -8,22 +8,8 @@ export default defineType({
     // HERO
     defineField({ name: "heroTitle", title: "Hero Title", type: "string" }),
     defineField({ name: "heroSubtitle", title: "Hero Subtitle", type: "text" }),
-
-    defineField({
-      name: "heroVideo",
-      title: "Hero Video (mp4)",
-      type: "file",
-      options: {
-        accept: "video/mp4",
-      },
-    }),
-
-    defineField({
-      name: "heroPoster",
-      title: "Hero Poster Image",
-      type: "image",
-      options: { hotspot: true },
-    }),
+    defineField({ name: "heroVideo", title: "Hero Video (mp4)", type: "file" }),
+    defineField({ name: "heroPoster", title: "Hero Poster Image", type: "image" }),
 
     // TRIPS
     defineField({
@@ -32,7 +18,6 @@ export default defineType({
       type: "string",
       initialValue: "Trips",
     }),
-
     defineField({ name: "tripsSubtitle", title: "Trips Subtitle", type: "text" }),
 
     defineField({
@@ -40,34 +25,16 @@ export default defineType({
       title: "Trips List",
       type: "array",
       of: [
-        defineType({
+        defineArrayMember({
           type: "object",
           name: "tripItem",
           title: "Trip",
           fields: [
             defineField({ name: "title", title: "Title", type: "string" }),
-
-            // ✅ change from string → slug (auto)
-            defineField({
-              name: "slug",
-              title: "Slug",
-              type: "slug",
-              options: { source: "title", maxLength: 96 },
-              validation: (Rule) => Rule.required(),
-            }),
-
+            defineField({ name: "slug", title: "Slug", type: "string" }),
             defineField({ name: "subtitle", title: "Subtitle", type: "text" }),
-
-            defineField({
-              name: "image",
-              title: "Background Image",
-              type: "image",
-              options: { hotspot: true },
-            }),
+            defineField({ name: "image", title: "Background Image", type: "image" }),
           ],
-          preview: {
-            select: { title: "title", media: "image" },
-          },
         }),
       ],
     }),
@@ -79,7 +46,6 @@ export default defineType({
       type: "string",
       initialValue: "Experiences",
     }),
-
     defineField({
       name: "experiencesSubtitle",
       title: "Experiences Subtitle",
@@ -91,7 +57,7 @@ export default defineType({
       title: "Experience Cards",
       type: "array",
       of: [
-        defineType({
+        defineArrayMember({
           type: "object",
           name: "experienceItem",
           title: "Experience",
@@ -99,9 +65,6 @@ export default defineType({
             defineField({ name: "title", title: "Title", type: "string" }),
             defineField({ name: "desc", title: "Description", type: "text" }),
           ],
-          preview: {
-            select: { title: "title" },
-          },
         }),
       ],
     }),
@@ -112,7 +75,7 @@ export default defineType({
       name: "aboutBody",
       title: "About Body",
       type: "array",
-      of: [{ type: "block" }],
+      of: [defineArrayMember({ type: "block" })],
     }),
 
     // CONTACT
