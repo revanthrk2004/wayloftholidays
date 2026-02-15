@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+
 
 
 
@@ -11,7 +11,8 @@ import Contact from "@/components/sections/Contact";
 
 import { getHomeData } from "@/sanity/lib/queries";
 
-export const revalidate = 5;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const home = await getHomeData();
