@@ -169,11 +169,7 @@ export default function Experiences({ cms }: { cms?: HomeData }) {
                       {c.desc}
                     </p>
 
-                    <div className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-(--primary) opacity-70">
-                      Built around your vibe
-                      <span className="h-1 w-1 rounded-full bg-(--primary)/40" />
-                      No templates
-                    </div>
+                   
                   </div>
                 </div>
               </motion.div>
