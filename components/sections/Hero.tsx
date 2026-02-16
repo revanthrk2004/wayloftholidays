@@ -70,9 +70,10 @@ export default function Hero({ cms }: { cms?: HomeData }) {
   // allow either:
   // 1) "Travel,\nwithout the stress."
   // 2) "Travel, without the stress."
-  const [line1Raw, ...rest] = heroTitle.split("\n");
-  const line1 = (line1Raw || "Travel,").trim();
-  const line2 = (rest.join("\n").trim() || "without the stress.").trim();
+const parts = heroTitle.split("\n").map((s) => s.trim()).filter(Boolean);
+
+const line1 = parts[0] ?? "Travel,";
+const line2 = parts[1]; // optional
 
   return (
     <section className="relative min-h-[99vh] overflow-hidden -mt-22">
@@ -111,13 +112,14 @@ export default function Hero({ cms }: { cms?: HomeData }) {
           <div className="relative">
             <div className="pointer-events-none absolute -left-24 -top-24 h-[420px] w-[420px] rounded-full bg-white/10 blur-[120px]" />
 
-            <motion.h1
-              variants={itemV}
-              className="mt-8 max-w-2xl font-heading text-5xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
-            >
-              {line1}
-              <span className="block text-white/70">{line2}</span>
-            </motion.h1>
+          <motion.h1
+            variants={itemV}
+            className="mt-8 max-w-2xl font-heading text-5xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
+          >
+            {line1}
+            {line2 ? <span className="block text-white/70">{line2}</span> : null}
+          </motion.h1>
+
 
             <motion.p
               variants={itemV}
