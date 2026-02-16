@@ -5,6 +5,7 @@ import ClientShell from "@/components/shell/ClientShell";
 import Footer from "@/components/sections/Footer";
 import CookieBanner from "@/components/legal/CookieBanner";
 import ChatWidget from "@/components/ai/ChatWidget";
+import RouteGate from "@/components/shell/RouteGate";
 
 import { Lora } from "next/font/google";
 
@@ -26,9 +27,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ClientShell>
           {children}
-          <Footer />
-          <CookieBanner />
-          <ChatWidget />
+
+          {/* ✅ Hide Footer inside /studio */}
+          <RouteGate hideOnStudio>
+            <Footer />
+          </RouteGate>
+
+          {/* ✅ Hide Cookie banner inside /studio */}
+          <RouteGate hideOnStudio>
+            <CookieBanner />
+          </RouteGate>
+
+          {/* ✅ Chat only on homepage and never inside /studio */}
+          <RouteGate hideOnStudio showOnHomeOnly>
+            <ChatWidget />
+          </RouteGate>
         </ClientShell>
       </body>
     </html>
