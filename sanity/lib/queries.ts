@@ -1,5 +1,10 @@
 import { sanityClient } from "./client";
 
+export type HeroRightItem = {
+  title: string;
+  desc: string;
+};
+
 export type HomeTripHighlight = {
   name: string;
   image?: any;
@@ -8,10 +13,10 @@ export type HomeTripHighlight = {
 
 export type HomeTrip = {
   title: string;
-  slug: string; // <-- still a string in your app (we read slug.current)
+  slug: string;
   subtitle: string;
   image?: any;
-    
+
   thumb?: any;
   about?: string;
   highlights?: HomeTripHighlight[];
@@ -27,6 +32,11 @@ export type HomeData = {
   heroSubtitle?: string;
   heroVideo?: any;
   heroPoster?: any;
+
+  // ✅ NEW
+  heroRightEyebrow?: string;
+  heroRightTitle?: string;
+  heroRightItems?: HeroRightItem[];
 
   tripsHeading?: string;
   tripsSubtitle?: string;
@@ -46,13 +56,17 @@ export type HomeData = {
 
 export async function getHomeData(): Promise<HomeData | null> {
   const query = `*[
-  _type == "homepage" &&
-  !(_id in path("drafts.**"))
-] | order(_updatedAt desc)[0]{
+    _type == "homepage" &&
+    !(_id in path("drafts.**"))
+  ] | order(_updatedAt desc)[0]{
     heroTitle,
     heroSubtitle,
     heroVideo,
     heroPoster,
+
+    heroRightEyebrow,
+    heroRightTitle,
+    heroRightItems[]{ title, desc },
 
     tripsHeading,
     tripsSubtitle,
@@ -77,7 +91,6 @@ export async function getHomeData(): Promise<HomeData | null> {
     contactEmail,
     contactWhatsapp
   }`;
-
 
 
 

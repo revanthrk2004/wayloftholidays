@@ -30,22 +30,17 @@ const itemV = {
 };
 
 function getFileUrl(file: any): string {
-  // Sanity file field usually looks like: { asset: { url } }
   const url = file?.asset?.url;
   if (typeof url === "string" && url.length) return url;
-
-  // sometimes people store string directly
   if (typeof file === "string" && file.length) return file;
-
   return "";
 }
 
 export default function Hero({ cms }: { cms?: HomeData }) {
   const [openIntro, setOpenIntro] = useState(false);
 
-  // ✅ CMS values with safe fallbacks
   const heroTitle = useMemo(() => {
-    return (cms?.heroTitle?.trim() || "Travel, without the stress.").trim();
+    return (cms?.heroTitle?.trim() || "Travel,\nwithout the stress.").trim();
   }, [cms?.heroTitle]);
 
   const heroSubtitle = useMemo(() => {
@@ -56,9 +51,7 @@ export default function Hero({ cms }: { cms?: HomeData }) {
   }, [cms?.heroSubtitle]);
 
   const poster = useMemo(() => {
-    if (cms?.heroPoster) {
-      return urlFor(cms.heroPoster).width(1800).quality(85).url();
-    }
+    if (cms?.heroPoster) return urlFor(cms.heroPoster).width(1800).quality(85).url();
     return "/intro-poster.jpg";
   }, [cms?.heroPoster]);
 
@@ -67,20 +60,28 @@ export default function Hero({ cms }: { cms?: HomeData }) {
     return cmsVideo || "/intro.mp4";
   }, [cms?.heroVideo]);
 
-  // allow either:
-  // 1) "Travel,\nwithout the stress."
-  // 2) "Travel, without the stress."
-const parts = heroTitle.split("\n").map((s) => s.trim()).filter(Boolean);
+  const parts = heroTitle.split("\n").map((s) => s.trim()).filter(Boolean);
+  const line1 = parts[0] ?? "Travel,";
+  const line2 = parts[1]; // optional
 
-const line1 = parts[0] ?? "Travel,";
-const line2 = parts[1]; // optional
+  // ✅ RIGHT BOX from CMS with fallbacks
+  const rightEyebrow = (cms?.heroRightEyebrow || "Why WayLoft").trim();
+  const rightTitle = (cms?.heroRightTitle || "Designed for people who care how they travel").trim();
+
+  const rightItems =
+    (cms?.heroRightItems && cms.heroRightItems.length
+      ? cms.heroRightItems
+      : [
+          { title: "No templates", desc: "Every trip starts from scratch, built around you." },
+          { title: "Taste over trends", desc: "We optimise for comfort, beauty, and flow." },
+          { title: "One clear next step", desc: "Tell us what you want. We do the thinking." },
+        ]
+    ).filter((x) => x?.title?.trim());
 
   return (
     <section className="relative min-h-[99vh] overflow-hidden -mt-22">
-      {/* fills top behind floating header */}
       <div className="absolute inset-x-0 top-0 h-28 bg-black" />
 
-      {/* Background */}
       <div className="absolute inset-0">
         <video
           className="h-full w-full object-cover object-top"
@@ -94,13 +95,11 @@ const line2 = parts[1]; // optional
           <source src={videoSrc} type="video/mp4" />
         </video>
 
-        {/* cinematic layers */}
         <div className="absolute inset-0 bg-black/50" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/25 to-black/70" />
         <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 to-transparent" />
       </div>
 
-      {/* Content */}
       <Container className="relative flex min-h-[92vh] items-center pt-[96px]">
         <motion.div
           variants={containerV}
@@ -112,14 +111,13 @@ const line2 = parts[1]; // optional
           <div className="relative">
             <div className="pointer-events-none absolute -left-24 -top-24 h-[420px] w-[420px] rounded-full bg-white/10 blur-[120px]" />
 
-          <motion.h1
-            variants={itemV}
-            className="mt-8 max-w-2xl font-heading text-5xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
-          >
-            {line1}
-            {line2 ? <span className="block text-white/70">{line2}</span> : null}
-          </motion.h1>
-
+            <motion.h1
+              variants={itemV}
+              className="mt-8 max-w-2xl font-heading text-5xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
+            >
+              {line1}
+              {line2 ? <span className="block text-white/70">{line2}</span> : null}
+            </motion.h1>
 
             <motion.p
               variants={itemV}
@@ -128,10 +126,7 @@ const line2 = parts[1]; // optional
               {heroSubtitle}
             </motion.p>
 
-            <motion.div
-              variants={itemV}
-              className="mt-10 flex flex-wrap items-center gap-4"
-            >
+            <motion.div variants={itemV} className="mt-10 flex flex-wrap items-center gap-4">
               <Link
                 href="/plan"
                 className="group inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-semibold text-(--primary) shadow-[0_20px_70px_rgba(0,0,0,0.35)] hover:opacity-95"
@@ -156,19 +151,13 @@ const line2 = parts[1]; // optional
             className="relative rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15 backdrop-blur-sm -translate-y-8 md:-translate-y-0"
           >
             <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
-              Why WayLoft
+              {rightEyebrow}
             </div>
 
-            <div className="mt-2 text-xl font-semibold text-white">
-              Designed for people who care how they travel
-            </div>
+            <div className="mt-2 text-xl font-semibold text-white">{rightTitle}</div>
 
             <div className="mt-8 space-y-6">
-              {[
-                { title: "No templates", desc: "Every trip starts from scratch, built around you." },
-                { title: "Taste over trends", desc: "We optimise for comfort, beauty, and flow." },
-                { title: "One clear next step", desc: "Tell us what you want. We do the thinking." },
-              ].map((x) => (
+              {rightItems.map((x) => (
                 <div key={x.title} className="border-l border-white/20 pl-4">
                   <div className="font-semibold text-white">{x.title}</div>
                   <div className="mt-1 text-sm text-white/75">{x.desc}</div>
