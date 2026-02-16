@@ -51,11 +51,11 @@ export default function Footer() {
 
             <div className="mt-4 space-y-3 text-sm text-(--muted)">
               <a
-                href="mailto:hello@WayLoftholidays.com"
+                href="mailto:info@WayLoftholidays.com"
                 className="flex items-center gap-2 hover:text-(--primary)"
               >
                 <Mail className="h-4 w-4" />
-                hello@WayLoftholidays.com
+                info@WayLoftholidays.com
               </a>
 
               <a
@@ -87,7 +87,7 @@ export default function Footer() {
             © {new Date().getFullYear()} WayLoft Holidays. All rights reserved.
           </div>
           <div>
-            Designed with care · London
+            Designed with care · App Prod
           </div>
         </div>
       </div>
