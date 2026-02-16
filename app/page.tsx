@@ -8,6 +8,7 @@ import Trips from "@/components/sections/Trips";
 import Experiences from "@/components/sections/Experiences";
 import About from "@/components/sections/About";
 import Contact from "@/components/sections/Contact";
+import ChatWidget from "@/components/ai/ChatWidget";
 
 import { getHomeData } from "@/sanity/lib/queries";
 
@@ -27,6 +28,7 @@ export default async function Home() {
         <About cms={home ?? undefined} />
         <Contact cms={home ?? undefined} />
       </main>
+      <ChatWidget />
     </>
   );
 }
