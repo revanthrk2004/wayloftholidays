@@ -95,3 +95,20 @@ export async function getTripFromHome(slug: string): Promise<HomeTrip | null> {
 
   return sanityClient.fetch(query, { slug });
 }
+
+export async function getTripSlugsFromHome(): Promise<string[]> {
+  const query = `*[
+    _type == "homepage" &&
+    !(_id in path("drafts.**"))
+  ] | order(_updatedAt desc)[0]{
+    "slugs": trips[].slug
+  }.slugs`;
+
+  const slugs = await sanityClient.fetch<string[] | null>(
+    query,
+    {},
+    { next: { revalidate: 60 } }
+  );
+
+  return (slugs ?? []).filter(Boolean).map((s) => String(s).trim().toLowerCase());
+}
