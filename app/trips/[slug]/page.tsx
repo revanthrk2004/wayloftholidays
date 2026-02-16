@@ -1,58 +1,65 @@
 import Container from "@/components/ui/Container";
 import Link from "next/link";
 
-import { getTripBySlug, trips as LOCAL_TRIPS } from "@/app/lib/trips-data";
-
-import {
-  getTripFromHome,
-  getTripSlugsFromHome,
-  type HomeTrip,
-} from "@/sanity/lib/queries";
+import { getTripBySlug } from "@/app/lib/trips-data";
+import { getTripFromHome, getTripSlugsFromHome } from "@/sanity/lib/queries";
 import { urlFor } from "@/sanity/lib/image";
 
-export const revalidate = 60;
+export const revalidate = 5;
 
 function normalizeSlug(input: string) {
   return decodeURIComponent(String(input || "")).trim().toLowerCase();
 }
 
-function imgUrl(img: any, width = 2200, quality = 85) {
+function imgUrl(img: any, width = 2200) {
   if (!img) return "";
   try {
-    return urlFor(img).width(width).quality(quality).url();
+    return urlFor(img).width(width).quality(85).url();
   } catch {
     return "";
   }
 }
 
 export async function generateStaticParams() {
+  // ✅ Pull slugs from Sanity so new trips in Studio auto-generate pages
   const slugs = await getTripSlugsFromHome();
-
-  // fallback: if sanity has no trips yet
-  if (!slugs.length) {
-    return LOCAL_TRIPS.map((t) => ({ slug: t.slug }));
-  }
-
   return slugs.map((slug) => ({ slug }));
 }
 
 export default async function TripPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const slug = normalizeSlug(params.slug);
+  const { slug: rawSlug } = await params;
+  const slug = normalizeSlug(rawSlug);
 
-  // 1) Try Sanity first
+  // ✅ 1) Try Sanity first
   const cmsTrip = await getTripFromHome(slug);
 
-  // 2) Fallback to local trips-data.ts
+  // ✅ 2) Fallback to local trips-data.ts
   const localTrip = getTripBySlug(slug);
 
-  const trip = cmsTrip ?? null;
+  // ✅ Build a unified "trip" object
+  const trip =
+    cmsTrip
+      ? {
+          slug: String(cmsTrip.slug || slug).trim().toLowerCase(),
+          title: cmsTrip.title,
+          subtitle: cmsTrip.subtitle ?? "",
+          image: imgUrl(cmsTrip.image, 2600) || "",
+          thumb: imgUrl(cmsTrip.thumb, 900) || "",
+          about: cmsTrip.about ?? "",
+          highlights:
+            cmsTrip.highlights?.map((h) => ({
+              name: h.name,
+              image: imgUrl(h.image, 1200) || "",
+              description: h.description,
+            })) ?? [],
+        }
+      : localTrip;
 
-  // If neither found
-  if (!trip && !localTrip) {
+  if (!trip) {
     return (
       <section className="py-20">
         <Container>
@@ -77,37 +84,6 @@ export default async function TripPage({
     );
   }
 
-  // Build a single “render-ready” object for the UI
-  const renderTrip = trip
-    ? {
-        slug: trip.slug,
-        title: trip.title,
-        subtitle: trip.subtitle ?? "",
-        about: trip.about ?? "",
-        image: imgUrl(trip.image, 2600, 85),
-        thumb: imgUrl(trip.thumb, 600, 85),
-        highlights:
-          trip.highlights?.map((h) => ({
-            name: h.name,
-            description: h.description,
-            image: imgUrl(h.image, 1400, 85),
-          })) ?? [],
-      }
-    : {
-        slug: localTrip!.slug,
-        title: localTrip!.title,
-        subtitle: localTrip!.subtitle,
-        about: localTrip!.about,
-        image: localTrip!.image,
-        thumb: localTrip!.thumb,
-        highlights:
-          localTrip!.highlights?.map((h) => ({
-            name: h.name,
-            description: h.description,
-            image: h.image,
-          })) ?? [],
-      };
-
   return (
     <section className="py-12 md:py-16">
       <Container>
@@ -121,7 +97,7 @@ export default async function TripPage({
           </Link>
 
           <Link
-            href={`/plan?destination=${encodeURIComponent(renderTrip.title)}`}
+            href={`/plan?destination=${encodeURIComponent(trip.title)}`}
             className="rounded-2xl bg-(--primary) px-5 py-3 text-sm font-semibold text-white hover:opacity-95"
           >
             Start planning
@@ -133,7 +109,7 @@ export default async function TripPage({
           <div
             className="absolute inset-0"
             style={{
-              backgroundImage: `url(${renderTrip.image})`,
+              backgroundImage: `url(${trip.image})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -148,11 +124,11 @@ export default async function TripPage({
             </div>
 
             <h1 className="font-heading mt-4 text-4xl font-semibold tracking-tight text-white md:text-6xl">
-              {renderTrip.title}
+              {trip.title}
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/85 md:text-base">
-              {renderTrip.about}
+              {trip.about}
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -160,18 +136,18 @@ export default async function TripPage({
                 <span className="text-xs font-semibold tracking-wide text-white/70">
                   VIBE
                 </span>
-                <div className="mt-1 font-semibold">{renderTrip.subtitle}</div>
+                <div className="mt-1 font-semibold">{trip.subtitle}</div>
               </div>
 
-              {renderTrip.thumb ? (
+              {trip.thumb ? (
                 <div
                   className="h-20 w-20 rounded-2xl ring-1 ring-white/20"
                   style={{
-                    backgroundImage: `url(${renderTrip.thumb})`,
+                    backgroundImage: `url(${trip.thumb})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }}
-                  aria-label={`${renderTrip.title} snapshot`}
+                  aria-label={`${trip.title} snapshot`}
                 />
               ) : null}
             </div>
@@ -182,7 +158,7 @@ export default async function TripPage({
         <div className="mt-10">
           <div className="max-w-2xl">
             <h2 className="font-heading text-3xl font-semibold tracking-tight text-(--primary)">
-              Highlights Of {renderTrip.title}
+              Highlights Of {trip.title}
             </h2>
             <p className="mt-2 text-(--muted)">
               The main spots we can build your days around.
@@ -190,21 +166,26 @@ export default async function TripPage({
           </div>
 
           <div className="mt-6 grid gap-4">
-            {renderTrip.highlights?.map((h) => (
+            {trip.highlights?.map((h: any) => (
               <div
                 key={h.name}
                 className="grid gap-4 rounded-[28px] bg-white p-4 ring-1 ring-black/10 md:grid-cols-[240px_1fr] md:items-start md:p-5"
               >
-                {/* LEFT: image + name */}
+                {/* LEFT */}
                 <div className="flex gap-4 md:flex-col md:gap-3">
-                  <div
-                    className="h-24 w-24 shrink-0 rounded-2xl ring-1 ring-black/10 md:h-[200px] md:w-full"
-                    style={{
-                      backgroundImage: `url(${h.image})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
+                  {h.image ? (
+                    <div
+                      className="h-24 w-24 shrink-0 rounded-2xl ring-1 ring-black/10 md:h-[200px] md:w-full"
+                      style={{
+                        backgroundImage: `url(${h.image})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    />
+                  ) : (
+                    <div className="h-24 w-24 shrink-0 rounded-2xl bg-(--light) ring-1 ring-black/10 md:h-[200px] md:w-full" />
+                  )}
+
                   <div className="min-w-0">
                     <div className="text-xs font-semibold tracking-[0.18em] text-(--muted)">
                       HIGHLIGHT
@@ -215,7 +196,7 @@ export default async function TripPage({
                   </div>
                 </div>
 
-                {/* RIGHT: description hugging content */}
+                {/* RIGHT */}
                 <div className="self-start">
                   <div className="inline-block w-full rounded-2xl bg-(--light) p-4 ring-1 ring-black/5 md:p-5">
                     <p className="text-sm leading-relaxed text-(--muted)">
@@ -226,9 +207,9 @@ export default async function TripPage({
               </div>
             ))}
 
-            {!renderTrip.highlights?.length ? (
+            {!trip.highlights?.length ? (
               <div className="rounded-3xl bg-white p-6 ring-1 ring-black/10 text-(--muted)">
-                No highlights yet. Add them in Studio → Homepage → Trips → Highlights.
+                No highlights added yet for this trip.
               </div>
             ) : null}
           </div>

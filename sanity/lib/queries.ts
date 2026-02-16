@@ -78,13 +78,37 @@ export async function getHomeData(): Promise<HomeData | null> {
     contactWhatsapp
   }`;
 
+
+
+
+  
   return sanityClient.fetch(query, {}, { next: { revalidate: 5 } });
 }
+
+export async function getTripSlugsFromHome(): Promise<string[]> {
+  const query = `*[
+    _type == "homepage" && !(_id in path("drafts.**"))
+  ] | order(_updatedAt desc)[0]{
+    "slugs": trips[]{
+      "slug": coalesce(slug.current, slug)
+    }
+  }.slugs[].slug`;
+
+  const slugs = await sanityClient.fetch<string[]>(query, {}, { next: { revalidate: 5 } });
+  return (slugs || [])
+    .map((s) => String(s || "").trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export async function getTripFromHome(slug: string): Promise<HomeTrip | null> {
-  const query = `*[_type=="homepage"][0]{
-    "trip": trips[slug == $slug][0]{
+  const query = `*[
+    _type == "homepage" && !(_id in path("drafts.**"))
+  ] | order(_updatedAt desc)[0]{
+    "trip": trips[
+      lower(coalesce(slug.current, slug)) == $slug
+    ][0]{
       title,
-      slug,
+      "slug": coalesce(slug.current, slug),
       subtitle,
       image,
       thumb,
@@ -93,22 +117,6 @@ export async function getTripFromHome(slug: string): Promise<HomeTrip | null> {
     }
   }.trip`;
 
-  return sanityClient.fetch(query, { slug });
+  return sanityClient.fetch(query, { slug: slug.toLowerCase() }, { next: { revalidate: 5 } });
 }
 
-export async function getTripSlugsFromHome(): Promise<string[]> {
-  const query = `*[
-    _type == "homepage" &&
-    !(_id in path("drafts.**"))
-  ] | order(_updatedAt desc)[0]{
-    "slugs": trips[].slug
-  }.slugs`;
-
-  const slugs = await sanityClient.fetch<string[] | null>(
-    query,
-    {},
-    { next: { revalidate: 60 } }
-  );
-
-  return (slugs ?? []).filter(Boolean).map((s) => String(s).trim().toLowerCase());
-}

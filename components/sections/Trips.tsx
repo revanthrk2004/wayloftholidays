@@ -34,7 +34,8 @@ export default function Trips({ cms }: { cms?: HomeData }) {
     if (cmsTrips.length) {
       const mapped = cmsTrips
         .map((t) => {
-          const slug = (t.slug ?? "").trim();
+          const slug = String(t.slug ?? "").trim().toLowerCase();
+
           const image = getImageUrl(t.image);
 
           if (!slug || !t.title || !image) return null;
