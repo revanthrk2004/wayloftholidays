@@ -1,10 +1,20 @@
 import { sanityClient } from "./client";
 
+export type HomeTripHighlight = {
+  name: string;
+  image?: any;
+  description: string;
+};
+
 export type HomeTrip = {
   title: string;
   slug: string; // <-- still a string in your app (we read slug.current)
   subtitle: string;
   image?: any;
+    
+  thumb?: any;
+  about?: string;
+  highlights?: HomeTripHighlight[];
 };
 
 export type HomeExperience = {
@@ -48,9 +58,12 @@ export async function getHomeData(): Promise<HomeData | null> {
     tripsSubtitle,
     trips[]{
       title,
-      "slug": slug.current,
+      slug,
       subtitle,
-      image
+      image,
+      thumb,
+      about,
+      highlights[]{ name, image, description }
     },
 
     experiencesHeading,
@@ -66,4 +79,19 @@ export async function getHomeData(): Promise<HomeData | null> {
   }`;
 
   return sanityClient.fetch(query, {}, { next: { revalidate: 5 } });
+}
+export async function getTripFromHome(slug: string): Promise<HomeTrip | null> {
+  const query = `*[_type=="homepage"][0]{
+    "trip": trips[slug == $slug][0]{
+      title,
+      slug,
+      subtitle,
+      image,
+      thumb,
+      about,
+      highlights[]{ name, image, description }
+    }
+  }.trip`;
+
+  return sanityClient.fetch(query, { slug });
 }

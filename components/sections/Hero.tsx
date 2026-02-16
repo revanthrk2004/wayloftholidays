@@ -45,7 +45,7 @@ export default function Hero({ cms }: { cms?: HomeData }) {
 
   // ✅ CMS values with safe fallbacks
   const heroTitle = useMemo(() => {
-    return (cms?.heroTitle?.trim() || "Travel,\nwithout the stress.").trim();
+    return (cms?.heroTitle?.trim() || "Travel, without the stress.").trim();
   }, [cms?.heroTitle]);
 
   const heroSubtitle = useMemo(() => {

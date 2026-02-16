@@ -72,7 +72,7 @@ export const trips: Trip[] = [
     title: "Albania",
     subtitle: "Hidden beaches, mountain drives, and calm coastal towns.",
     image: "/trips/albania.jpg",
-    thumb: "/trips/albania-square.jpg",
+    thumb: "/trips/spots/albania-tirana.jpg",
     about:
       "Albania is a stunning destination where rugged mountains meet the turquoise Adriatic and Ionian seas. Historic towns, crystal-clear lakes, and unspoiled coastline come together to offer travellers a refined mix of history, culture, and natural beauty in a compact, accessible country. Authentic culture, breathtaking landscapes, and experiences await around every corner.",
     highlights: [

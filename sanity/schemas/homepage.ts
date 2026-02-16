@@ -1,86 +1,106 @@
 import { defineType, defineField, defineArrayMember } from "sanity";
 
-export default defineType({
+export default {
   name: "homepage",
   title: "Homepage",
   type: "document",
   fields: [
     // HERO
-    defineField({ name: "heroTitle", title: "Hero Title", type: "string" }),
-    defineField({ name: "heroSubtitle", title: "Hero Subtitle", type: "text" }),
-    defineField({ name: "heroVideo", title: "Hero Video (mp4)", type: "file" }),
-    defineField({ name: "heroPoster", title: "Hero Poster Image", type: "image" }),
+    { name: "heroTitle", title: "Hero Title", type: "string" },
+    { name: "heroSubtitle", title: "Hero Subtitle", type: "text" },
+    { name: "heroVideo", title: "Hero Video (mp4)", type: "file" },
+    { name: "heroPoster", title: "Hero Poster Image", type: "image" },
 
     // TRIPS
-    defineField({
+    {
       name: "tripsHeading",
       title: "Trips Heading",
       type: "string",
       initialValue: "Trips",
-    }),
-    defineField({ name: "tripsSubtitle", title: "Trips Subtitle", type: "text" }),
-
-    defineField({
+    },
+    { name: "tripsSubtitle", title: "Trips Subtitle", type: "text" },
+    {
       name: "trips",
       title: "Trips List",
       type: "array",
       of: [
-        defineArrayMember({
+        {
           type: "object",
           name: "tripItem",
           title: "Trip",
           fields: [
-            defineField({ name: "title", title: "Title", type: "string" }),
-            defineField({ name: "slug", title: "Slug", type: "string" }),
-            defineField({ name: "subtitle", title: "Subtitle", type: "text" }),
-            defineField({ name: "image", title: "Background Image", type: "image" }),
+            { name: "title", title: "Title", type: "string" },
+            {
+              name: "slug",
+              title: "Slug",
+              type: "string",
+              description: "Example: morocco, albania (no spaces)",
+            },
+            { name: "subtitle", title: "Subtitle", type: "text" },
+
+            // ✅ big background image used in Trips section
+            { name: "image", title: "Background Image", type: "image" },
+
+            // ✅ NEW: small square image for details page
+            { name: "thumb", title: "Thumbnail (Square)", type: "image" },
+
+            // ✅ NEW: About text for the trip details page
+            { name: "about", title: "About", type: "text" },
+
+            // ✅ NEW: Highlights list for the trip details page
+            {
+              name: "highlights",
+              title: "Highlights",
+              type: "array",
+              of: [
+                {
+                  type: "object",
+                  name: "highlightItem",
+                  title: "Highlight",
+                  fields: [
+                    { name: "name", title: "Name", type: "string" },
+                    { name: "image", title: "Image", type: "image" },
+                    { name: "description", title: "Description", type: "text" },
+                  ],
+                },
+              ],
+            },
           ],
-        }),
+        },
       ],
-    }),
+    },
 
     // EXPERIENCES
-    defineField({
+    {
       name: "experiencesHeading",
       title: "Experiences Heading",
       type: "string",
       initialValue: "Experiences",
-    }),
-    defineField({
-      name: "experiencesSubtitle",
-      title: "Experiences Subtitle",
-      type: "text",
-    }),
-
-    defineField({
+    },
+    { name: "experiencesSubtitle", title: "Experiences Subtitle", type: "text" },
+    {
       name: "experiences",
       title: "Experience Cards",
       type: "array",
       of: [
-        defineArrayMember({
+        {
           type: "object",
           name: "experienceItem",
-          title: "Experience",
           fields: [
-            defineField({ name: "title", title: "Title", type: "string" }),
-            defineField({ name: "desc", title: "Description", type: "text" }),
+            { name: "title", title: "Title", type: "string" },
+            { name: "desc", title: "Description", type: "text" },
           ],
-        }),
+        },
       ],
-    }),
+    },
 
     // ABOUT
-    defineField({ name: "aboutHeading", title: "About Heading", type: "string" }),
-    defineField({
-      name: "aboutBody",
-      title: "About Body",
-      type: "array",
-      of: [defineArrayMember({ type: "block" })],
-    }),
+    { name: "aboutHeading", title: "About Heading", type: "string" },
+    { name: "aboutBody", title: "About Body", type: "array", of: [{ type: "block" }] },
 
     // CONTACT
-    defineField({ name: "contactHeading", title: "Contact Heading", type: "string" }),
-    defineField({ name: "contactEmail", title: "Contact Email", type: "string" }),
-    defineField({ name: "contactWhatsapp", title: "WhatsApp Text", type: "string" }),
+    { name: "contactHeading", title: "Contact Heading", type: "string" },
+    { name: "contactEmail", title: "Contact Email", type: "string" },
+    { name: "contactWhatsapp", title: "WhatsApp Text", type: "string" },
   ],
-});
+};
