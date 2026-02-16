@@ -35,7 +35,10 @@ export type HomeData = {
 };
 
 export async function getHomeData(): Promise<HomeData | null> {
-  const query = `*[_type=="homepage"][0]{
+  const query = `*[
+  _type == "homepage" &&
+  !(_id in path("drafts.**"))
+] | order(_updatedAt desc)[0]{
     heroTitle,
     heroSubtitle,
     heroVideo,
