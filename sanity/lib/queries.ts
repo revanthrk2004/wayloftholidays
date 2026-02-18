@@ -50,10 +50,11 @@ aboutHeading?: string;
 aboutBody?: any[];
 
 aboutWatermarkImage?: any;
-
+aboutWatermarkOpacity?: number;
 
 aboutCards?: AboutCard[];
 aboutFootnote?: string;
+
 
 
 
@@ -102,9 +103,10 @@ export async function getHomeData(): Promise<HomeData | null> {
 aboutHeading,
 aboutBody,
 aboutWatermarkImage,
-
+aboutWatermarkOpacity,
 aboutCards[]{ label, icon, text },
 aboutFootnote,
+
 
 
 

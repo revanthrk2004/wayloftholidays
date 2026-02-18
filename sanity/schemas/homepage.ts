@@ -118,7 +118,7 @@ export default defineType({
       ],
     }),
 
- // ABOUT (FULLY EDITABLE)
+// ABOUT (FULLY EDITABLE)
 defineField({
   name: "aboutHeading",
   title: "About Heading",
@@ -139,7 +139,14 @@ defineField({
   type: "image",
   options: { hotspot: true },
 }),
-
+defineField({
+  name: "aboutWatermarkOpacity",
+  title: "About Watermark Opacity",
+  type: "number",
+  description: "Example: 0.01 (very faint), 0.03, 0.06",
+  initialValue: 0.01,
+  validation: (Rule) => Rule.min(0).max(0.2),
+}),
 
 // Cards (editable)
 defineField({
@@ -189,8 +196,9 @@ defineField({
   name: "aboutFootnote",
   title: "About Footnote Text",
   type: "string",
-  initialValue: "WayLoft Holidays",
+  initialValue: "WayLoft standard",
 }),
+
 
     // CONTACT
     defineField({ name: "contactHeading", title: "Contact Heading", type: "string" }),
