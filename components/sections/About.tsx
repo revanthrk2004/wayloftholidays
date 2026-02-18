@@ -43,24 +43,21 @@ export default function About({ cms }: { cms?: HomeData }) {
 
   const hasBody = Boolean(cms?.aboutBody?.length);
 
-  // Watermark logo image (Studio) fallback to local image
-  const watermarkUrl = useMemo(() => {
-    if (cms?.aboutWatermarkImage) {
-      try {
-        return urlFor(cms.aboutWatermarkImage).width(1200).quality(90).url();
-      } catch {
-        return "";
-      }
+// Watermark logo image (Studio) fallback to local image
+const watermarkUrl = useMemo(() => {
+  // ✅ only use CMS image if it actually has an asset
+  if (cms?.aboutWatermarkImage?.asset) {
+    try {
+      return urlFor(cms.aboutWatermarkImage).width(1400).quality(95).url();
+    } catch {
+      return "/wayloft-logo1.png";
     }
-    return "/wayloft-logo1.png";
-  }, [cms?.aboutWatermarkImage]);
+  }
+  return "/wayloft-logo1.png";
+}, [cms?.aboutWatermarkImage]);
 
-  // Watermark opacity (Studio) fallback
-  const watermarkOpacity = useMemo(() => {
-    const v = cms?.aboutWatermarkOpacity;
-    if (typeof v === "number") return v;
-    return 0.01;
-  }, [cms?.aboutWatermarkOpacity]);
+
+
 
   // Cards (Studio) fallback
   const cards = useMemo(() => {
@@ -100,19 +97,18 @@ export default function About({ cms }: { cms?: HomeData }) {
           className="relative"
         >
           {/* watermark logo (Studio editable) */}
-          <motion.div
-            variants={itemV}
-            className="pointer-events-none absolute -top-28 right-[-120px]"
-            style={{ opacity: watermarkOpacity }}
-          >
+         <motion.div
+  variants={itemV}
+  className="pointer-events-none absolute -top-28 right-[-120px] opacity-[0.07]"
+>
+
             <div className="relative h-[220px] w-[520px] md:h-[560px] md:w-[660px]">
-              <Image
-                src={watermarkUrl}
-                alt=""
-                fill
-                sizes="660px"
-                className="object-contain"
-              />
+<img
+  src={watermarkUrl}
+  alt=""
+  className="h-full w-full object-contain"
+/>
+
             </div>
           </motion.div>
 
