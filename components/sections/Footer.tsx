@@ -59,18 +59,18 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://wa.me/XXXXXXXXXX"
+                href="https://wa.me/+447425099792"
                 target="_blank"
                 className="flex items-center gap-2 hover:text-(--primary)"
               >
                 <Phone className="h-4 w-4" />
-                WhatsApp Concierge
+                WhatsApp
               </a>
             </div>
 
             <div className="mt-6 flex items-center gap-4">
               <a
-                href="https://instagram.com"
+                href="https://instagram.com/wayloftholidays"
                 target="_blank"
                 aria-label="Instagram"
                 className="rounded-xl bg-(--light) p-2 text-(--primary) ring-1 ring-black/5 hover:scale-105 transition"
