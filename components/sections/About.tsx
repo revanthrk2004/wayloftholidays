@@ -56,11 +56,7 @@ export default function About({ cms }: { cms?: HomeData }) {
   }, [cms?.aboutWatermarkImage]);
 
   // Watermark opacity (Studio) fallback
-  const watermarkOpacity = useMemo(() => {
-    const v = cms?.aboutWatermarkOpacity;
-    if (typeof v === "number") return v;
-    return 0.01;
-  }, [cms?.aboutWatermarkOpacity]);
+ 
 
   // Cards (Studio) fallback
   const cards = useMemo(() => {
@@ -103,7 +99,7 @@ export default function About({ cms }: { cms?: HomeData }) {
           <motion.div
             variants={itemV}
             className="pointer-events-none absolute -top-28 right-[-120px]"
-            style={{ opacity: watermarkOpacity }}
+            style={{ }}
           >
             <div className="relative h-[220px] w-[520px] md:h-[560px] md:w-[660px]">
               <Image
