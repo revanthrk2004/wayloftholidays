@@ -46,13 +46,33 @@ export type HomeData = {
   experiencesSubtitle?: string;
   experiences?: HomeExperience[];
 
-  aboutHeading?: string;
-  aboutBody?: any[];
+aboutHeading?: string;
+aboutBody?: any[];
+
+aboutImage?: any;
+aboutImageAlt?: string;
+aboutCards?: AboutCard[];
+aboutStats?: AboutStat[];
+aboutCtaText?: string;
+aboutCtaHref?: string;
+
 
   contactHeading?: string;
   contactEmail?: string;
   contactWhatsapp?: string;
 };
+export type AboutCard = {
+  tag?: string;
+  title?: string;
+  desc?: string;
+  emoji?: string;
+};
+
+export type AboutStat = {
+  label?: string;
+  value?: string;
+};
+
 
 export async function getHomeData(): Promise<HomeData | null> {
   const query = `*[
@@ -84,8 +104,15 @@ export async function getHomeData(): Promise<HomeData | null> {
     experiencesSubtitle,
     experiences[]{title, desc},
 
-    aboutHeading,
-    aboutBody,
+  aboutHeading,
+aboutBody,
+aboutImage,
+aboutImageAlt,
+aboutCards[]{ tag, title, desc, emoji },
+aboutStats[]{ label, value },
+aboutCtaText,
+aboutCtaHref,
+
 
     contactHeading,
     contactEmail,

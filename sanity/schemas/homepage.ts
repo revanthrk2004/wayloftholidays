@@ -119,13 +119,76 @@ export default defineType({
     }),
 
     // ABOUT
-    defineField({ name: "aboutHeading", title: "About Heading", type: "string" }),
-    defineField({
-      name: "aboutBody",
-      title: "About Body",
-      type: "array",
-      of: [defineArrayMember({ type: "block" })],
+// ABOUT (✅ UPGRADED + EDITABLE)
+defineField({
+  name: "aboutHeading",
+  title: "About Heading",
+  type: "string",
+  initialValue: "About WayLoft",
+}),
+defineField({
+  name: "aboutBody",
+  title: "About Body",
+  type: "array",
+  of: [defineArrayMember({ type: "block" })],
+}),
+
+defineField({
+  name: "aboutImage",
+  title: "About Image",
+  type: "image",
+  options: { hotspot: true },
+}),
+defineField({
+  name: "aboutImageAlt",
+  title: "About Image Alt Text",
+  type: "string",
+}),
+
+defineField({
+  name: "aboutCards",
+  title: "About Feature Cards",
+  type: "array",
+  of: [
+    defineArrayMember({
+      type: "object",
+      name: "aboutCard",
+      title: "Card",
+      fields: [
+        defineField({ name: "tag", title: "Tag (small label)", type: "string" }),
+        defineField({ name: "title", title: "Title", type: "string" }),
+        defineField({ name: "desc", title: "Description", type: "text" }),
+        defineField({
+          name: "emoji",
+          title: "Emoji (optional)",
+          type: "string",
+          description: "Example: ✨ 🗺️ ⚡",
+        }),
+      ],
     }),
+  ],
+}),
+
+defineField({
+  name: "aboutStats",
+  title: "About Stats",
+  type: "array",
+  of: [
+    defineArrayMember({
+      type: "object",
+      name: "aboutStat",
+      title: "Stat",
+      fields: [
+        defineField({ name: "label", title: "Label", type: "string" }),
+        defineField({ name: "value", title: "Value", type: "string" }),
+      ],
+    }),
+  ],
+}),
+
+defineField({ name: "aboutCtaText", title: "About CTA Text", type: "string" }),
+defineField({ name: "aboutCtaHref", title: "About CTA Link", type: "string" }),
+
 
     // CONTACT
     defineField({ name: "contactHeading", title: "Contact Heading", type: "string" }),
