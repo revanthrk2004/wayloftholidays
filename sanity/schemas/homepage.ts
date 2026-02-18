@@ -118,8 +118,7 @@ export default defineType({
       ],
     }),
 
-    // ABOUT
-// ABOUT (✅ UPGRADED + EDITABLE)
+ // ABOUT (FULLY EDITABLE)
 defineField({
   name: "aboutHeading",
   title: "About Heading",
@@ -133,21 +132,26 @@ defineField({
   of: [defineArrayMember({ type: "block" })],
 }),
 
+// Watermark logo image + opacity (editable)
 defineField({
-  name: "aboutImage",
-  title: "About Image",
+  name: "aboutWatermarkImage",
+  title: "About Watermark Logo",
   type: "image",
   options: { hotspot: true },
 }),
 defineField({
-  name: "aboutImageAlt",
-  title: "About Image Alt Text",
-  type: "string",
+  name: "aboutWatermarkOpacity",
+  title: "About Watermark Opacity",
+  type: "number",
+  description: "Example: 0.01 (very faint), 0.03, 0.06",
+  initialValue: 0.01,
+  validation: (Rule) => Rule.min(0).max(0.2),
 }),
 
+// Cards (editable)
 defineField({
   name: "aboutCards",
-  title: "About Feature Cards",
+  title: "About Cards",
   type: "array",
   of: [
     defineArrayMember({
@@ -155,40 +159,45 @@ defineField({
       name: "aboutCard",
       title: "Card",
       fields: [
-        defineField({ name: "tag", title: "Tag (small label)", type: "string" }),
-        defineField({ name: "title", title: "Title", type: "string" }),
-        defineField({ name: "desc", title: "Description", type: "text" }),
         defineField({
-          name: "emoji",
-          title: "Emoji (optional)",
+          name: "label",
+          title: "Label",
           type: "string",
-          description: "Example: ✨ 🗺️ ⚡",
+          description: "Example: Personal, Premium, Fast",
+        }),
+        defineField({
+          name: "icon",
+          title: "Icon",
+          type: "string",
+          description: "Choose icon style for this card",
+          options: {
+            list: [
+              { title: "Sparkles", value: "sparkles" },
+              { title: "Gem", value: "gem" },
+              { title: "Timer", value: "timer" },
+            ],
+            layout: "radio",
+          },
+          initialValue: "sparkles",
+        }),
+        defineField({
+          name: "text",
+          title: "Text",
+          type: "text",
+          description: "Card description text",
         }),
       ],
     }),
   ],
 }),
 
+// Bottom small line text (editable)
 defineField({
-  name: "aboutStats",
-  title: "About Stats",
-  type: "array",
-  of: [
-    defineArrayMember({
-      type: "object",
-      name: "aboutStat",
-      title: "Stat",
-      fields: [
-        defineField({ name: "label", title: "Label", type: "string" }),
-        defineField({ name: "value", title: "Value", type: "string" }),
-      ],
-    }),
-  ],
+  name: "aboutFootnote",
+  title: "About Footnote Text",
+  type: "string",
+  initialValue: "WayLoft standard",
 }),
-
-defineField({ name: "aboutCtaText", title: "About CTA Text", type: "string" }),
-defineField({ name: "aboutCtaHref", title: "About CTA Link", type: "string" }),
-
 
     // CONTACT
     defineField({ name: "contactHeading", title: "Contact Heading", type: "string" }),

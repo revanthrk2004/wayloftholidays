@@ -49,12 +49,12 @@ export type HomeData = {
 aboutHeading?: string;
 aboutBody?: any[];
 
-aboutImage?: any;
-aboutImageAlt?: string;
+aboutWatermarkImage?: any;
+aboutWatermarkOpacity?: number;
+
 aboutCards?: AboutCard[];
-aboutStats?: AboutStat[];
-aboutCtaText?: string;
-aboutCtaHref?: string;
+aboutFootnote?: string;
+
 
 
   contactHeading?: string;
@@ -62,16 +62,11 @@ aboutCtaHref?: string;
   contactWhatsapp?: string;
 };
 export type AboutCard = {
-  tag?: string;
-  title?: string;
-  desc?: string;
-  emoji?: string;
+  label?: string;
+  icon?: "sparkles" | "gem" | "timer";
+  text?: string;
 };
 
-export type AboutStat = {
-  label?: string;
-  value?: string;
-};
 
 
 export async function getHomeData(): Promise<HomeData | null> {
@@ -104,14 +99,13 @@ export async function getHomeData(): Promise<HomeData | null> {
     experiencesSubtitle,
     experiences[]{title, desc},
 
-  aboutHeading,
+aboutHeading,
 aboutBody,
-aboutImage,
-aboutImageAlt,
-aboutCards[]{ tag, title, desc, emoji },
-aboutStats[]{ label, value },
-aboutCtaText,
-aboutCtaHref,
+aboutWatermarkImage,
+aboutWatermarkOpacity,
+aboutCards[]{ label, icon, text },
+aboutFootnote,
+
 
 
     contactHeading,

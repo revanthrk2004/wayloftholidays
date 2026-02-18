@@ -1,26 +1,39 @@
 "use client";
 
 import Container from "@/components/ui/Container";
-import type { HomeData } from "@/sanity/lib/queries";
+import type { HomeData, AboutCard } from "@/sanity/lib/queries";
 import { PortableText } from "@portabletext/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Sparkles, Gem, Timer } from "lucide-react";
 import { useMemo } from "react";
+import { urlFor } from "@/sanity/lib/image";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
 const wrapV = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+  },
 };
 
 const itemV = {
   hidden: { opacity: 0, y: 14, filter: "blur(6px)" },
-  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.75, ease } },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.75, ease },
+  },
 };
 
-type Card = { k: string; v: string; icon: React.ReactNode };
+function iconFromKey(key?: string) {
+  if (key === "gem") return <Gem className="h-4 w-4" />;
+  if (key === "timer") return <Timer className="h-4 w-4" />;
+  return <Sparkles className="h-4 w-4" />;
+}
 
 export default function About({ cms }: { cms?: HomeData }) {
   const heading = useMemo(
@@ -30,13 +43,43 @@ export default function About({ cms }: { cms?: HomeData }) {
 
   const hasBody = Boolean(cms?.aboutBody?.length);
 
-  const cards: Card[] = useMemo(
-    () => [
-      { k: "Personal", v: "Built around your taste, pace, and vibe.", icon: <Sparkles className="h-4 w-4" /> },
-      { k: "Premium", v: "Stays, routes, and details that feel elevated.", icon: <Gem className="h-4 w-4" /> },
-      { k: "Fast", v: "Tell us what you want. We handle the thinking.", icon: <Timer className="h-4 w-4" /> },
-    ],
-    []
+  // Watermark logo image (Studio) fallback to local image
+  const watermarkUrl = useMemo(() => {
+    if (cms?.aboutWatermarkImage) {
+      try {
+        return urlFor(cms.aboutWatermarkImage).width(1200).quality(90).url();
+      } catch {
+        return "";
+      }
+    }
+    return "/wayloft-logo1.png";
+  }, [cms?.aboutWatermarkImage]);
+
+  // Watermark opacity (Studio) fallback
+  const watermarkOpacity = useMemo(() => {
+    const v = cms?.aboutWatermarkOpacity;
+    if (typeof v === "number") return v;
+    return 0.01;
+  }, [cms?.aboutWatermarkOpacity]);
+
+  // Cards (Studio) fallback
+  const cards = useMemo(() => {
+    const list = (cms?.aboutCards ?? []).filter(
+      (c) => c?.label?.trim() && c?.text?.trim()
+    ) as AboutCard[];
+
+    if (list.length) return list;
+
+    return [
+      { label: "Personal", icon: "sparkles", text: "Built around your taste, pace, and vibe." },
+      { label: "Premium", icon: "gem", text: "Stays, routes, and details that feel elevated." },
+      { label: "Fast", icon: "timer", text: "Tell us what you want. We handle the thinking." },
+    ] as AboutCard[];
+  }, [cms?.aboutCards]);
+
+  const footnote = useMemo(
+    () => cms?.aboutFootnote?.trim() || "WayLoft standard",
+    [cms?.aboutFootnote]
   );
 
   return (
@@ -56,18 +99,18 @@ export default function About({ cms }: { cms?: HomeData }) {
           viewport={{ once: true, margin: "-20% 0px" }}
           className="relative"
         >
-          {/* bigger watermark logo */}
+          {/* watermark logo (Studio editable) */}
           <motion.div
             variants={itemV}
-            className="pointer-events-none absolute -top-28 right-[-120px] opacity-[0.01]"
-
+            className="pointer-events-none absolute -top-28 right-[-120px]"
+            style={{ opacity: watermarkOpacity }}
           >
             <div className="relative h-[220px] w-[520px] md:h-[560px] md:w-[660px]">
               <Image
-                src="/wayloft-logo1.png"
+                src={watermarkUrl}
                 alt=""
                 fill
-                sizes="460px"
+                sizes="660px"
                 className="object-contain"
               />
             </div>
@@ -91,11 +134,11 @@ export default function About({ cms }: { cms?: HomeData }) {
             </div>
           </motion.div>
 
-          {/* value cards */}
+          {/* cards (Studio editable) */}
           <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {cards.map((c) => (
+            {cards.map((c, idx) => (
               <motion.div
-                key={c.k}
+                key={`${c.label}-${idx}`}
                 variants={itemV}
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
@@ -103,18 +146,21 @@ export default function About({ cms }: { cms?: HomeData }) {
               >
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--light) text-(--primary) ring-1 ring-black/5">
-                    {c.icon}
+                    {iconFromKey(c.icon)}
                   </div>
-                  <div className="text-sm font-semibold text-(--primary)">{c.k}</div>
+
+                  <div className="text-sm font-semibold text-(--primary)">
+                    {c.label}
+                  </div>
                 </div>
 
                 <p className="mt-4 text-sm leading-relaxed text-(--muted)">
-                  {c.v}
+                  {c.text}
                 </p>
 
                 <div className="mt-5 h-px w-full bg-black/5" />
                 <div className="mt-3 text-xs font-semibold text-(--primary) opacity-70">
-                  WayLoft standard
+                  {footnote}
                 </div>
               </motion.div>
             ))}
