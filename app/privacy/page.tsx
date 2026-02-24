@@ -1,15 +1,14 @@
-// app/privacy/page.tsx
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { unstable_noStore as noStore } from "next/cache";
 import LegalShell from "@/components/legal/LegalShell";
 import { PortableText } from "@portabletext/react";
-import { getLegalPage } from "@/sanity/lib/legal-queries";
+import { getLegalPageById } from "@/sanity/lib/queries";
 
 export default async function PrivacyPage() {
   noStore();
-  const cms = await getLegalPage("privacy");
+  const cms = await getLegalPageById("legal.privacy");
 
   return (
     <LegalShell
