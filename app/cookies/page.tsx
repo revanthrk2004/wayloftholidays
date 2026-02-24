@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import LegalShell from "@/components/legal/LegalShell";
 import { PortableText } from "@portabletext/react";
 import { getLegalPage } from "@/sanity/lib/legal-queries";
