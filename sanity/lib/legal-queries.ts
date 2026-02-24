@@ -1,3 +1,4 @@
+// sanity/lib/legal-queries.ts
 import { sanityClient } from "./client";
 
 export type LegalPageData = {
