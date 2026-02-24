@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
+
 import { createClient } from "@sanity/client";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
@@ -18,13 +19,19 @@ const client = createClient({
   useCdn: false,
 });
 
+/* ✅ Sanity arrays need unique _key on every item */
+function key() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
 function span(text: string) {
-  return { _type: "span", text, marks: [] as string[] };
+  return { _type: "span", _key: key(), text, marks: [] as string[] };
 }
 
 function block(text: string) {
   return {
     _type: "block",
+    _key: key(),
     style: "normal",
     markDefs: [],
     children: [span(text)],
@@ -34,6 +41,7 @@ function block(text: string) {
 function h2(text: string) {
   return {
     _type: "block",
+    _key: key(),
     style: "h2",
     markDefs: [],
     children: [span(text)],
@@ -59,17 +67,14 @@ const pages: LegalSeed[] = [
       block(
         "Cookies are small files stored on your device. They help websites remember preferences and measure performance."
       ),
-
       h2("How we use cookies"),
       block(
         "We may use essential cookies for basic site functionality and analytics cookies to understand how visitors use the site."
       ),
-
       h2("Your choices"),
       block(
         "You can accept or reject non essential cookies using the cookie banner. You can also clear cookies anytime in your browser settings."
       ),
-
       h2("Contact"),
       block("Cookies questions: support@WayLoftholidays.com"),
     ],
@@ -84,17 +89,14 @@ const pages: LegalSeed[] = [
       block(
         "Content on this site is for general information and trip inspiration. It is not financial, legal, or medical advice."
       ),
-
       h2("Availability and pricing"),
       block(
         "Travel availability and prices can change quickly. Any suggestions are subject to change until confirmed."
       ),
-
       h2("Third party services"),
       block(
         "We may recommend airlines, hotels, and experiences, but we do not control third party services. Where possible, we will support you if issues arise."
       ),
-
       h2("Contact"),
       block("Questions: support@WayLoftholidays.com"),
     ],
@@ -109,22 +111,18 @@ const pages: LegalSeed[] = [
       block(
         "When you plan a trip, you may share details like your name, email, WhatsApp number, destination, dates, budget, and preferences."
       ),
-
       h2("How we use it"),
       block(
         "We use your info to contact you, understand your request, and craft itinerary suggestions. We do not sell your personal data."
       ),
-
       h2("Third parties"),
       block(
         "If you choose to proceed with bookings, we may share necessary details with airlines, hotels, or partners only to complete that booking."
       ),
-
       h2("Data retention"),
       block(
         "We keep trip planning requests only as long as needed for support, follow ups, and service improvements."
       ),
-
       h2("Contact"),
       block("Privacy questions: privacy@WayLoftholidays.com"),
     ],
@@ -139,22 +137,18 @@ const pages: LegalSeed[] = [
       block(
         "You agree not to misuse the website, attempt to disrupt it, or submit false information."
       ),
-
       h2("Trip planning"),
       block(
         "Any itineraries or suggestions shared are based on the info you provide and availability at the time. Prices can change."
       ),
-
       h2("Bookings"),
       block(
         "If we place a booking through partners, their terms may also apply. We will always clarify before confirming anything."
       ),
-
       h2("Liability"),
       block(
         "We are not responsible for delays, cancellations, or issues caused by third parties (airlines, hotels, etc.). We will help you where we can."
       ),
-
       h2("Contact"),
       block("Questions: support@WayLoftholidays.com"),
     ],
@@ -165,16 +159,15 @@ async function main() {
   console.log("✅ Seeding legal pages...");
 
   for (const p of pages) {
-    const doc = {
+    await client.createOrReplace({
       _type: "legalPage",
       _id: p._id,
       slug: p.slug,
       title: p.title,
       subtitle: p.subtitle,
       content: p.content,
-    };
+    });
 
-    await client.createOrReplace(doc);
     console.log(`→ Seeded: ${p.slug}`);
   }
 
