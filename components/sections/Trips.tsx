@@ -197,13 +197,13 @@ export default function Trips({ cms }: { cms?: HomeData }) {
                         VISIT
                       </div>
 
-                      <div className="font-heading mt-2 text-lg font-semibold text-white sm:text-2xl">
+                     <div className="font-heading mt-2 text-lg font-semibold leading-tight text-white sm:text-2xl">
                         {t.title}
                       </div>
 
-                      <div className="mt-2 text-[11px] leading-relaxed text-white/75 sm:text-xs line-clamp-2">
-                        {t.subtitle}
-                      </div>
+  <div className="mt-2 pb-[2px] text-[12px] leading-[1.35] text-white/75 sm:text-xs line-clamp-2">
+  {t.subtitle}
+</div>
 
                       {isActive ? (
                         <div className="mt-3 text-[11px] font-semibold text-white/90">
