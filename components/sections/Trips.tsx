@@ -201,7 +201,7 @@ export default function Trips({ cms }: { cms?: HomeData }) {
                         {t.title}
                       </div>
 
-  <div className="mt-2 pb-[6px] text-[12px] leading-[1.35] text-white/75 sm:text-xs line-clamp-2">
+<div className="mt-1 text-[11px] leading-[1.35] text-white/75 line-clamp-2 sm:translate-y-[1px] sm:text-xs">
   {t.subtitle}
 </div>
 
