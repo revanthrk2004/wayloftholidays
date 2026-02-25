@@ -170,7 +170,7 @@ export default function ChatWidget() {
             <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 py-3 backdrop-blur-xl">
               <div className="flex items-center gap-3">
                 <div className="relative h-9 w-9 overflow-hidden rounded-xl ring-1 ring-black/10 bg-white">
-                  <Image src="/WayLoft-logo.png" alt="WayLoft" fill className="object-cover" priority />
+                  <Image src="/wayLoft-logo1.png" alt="WayLoft" fill className="object-cover" priority />
                 </div>
 
                 <div className="leading-tight">

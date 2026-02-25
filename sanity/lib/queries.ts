@@ -186,3 +186,31 @@ export async function getLegalPageById(id: string): Promise<LegalPageData | null
   // ✅ SAME style as Site Settings: no caching
   return sanityServerClient.fetch(query, { id });
 }
+
+// =========================
+// AI DESTINATION TARGETS
+// =========================
+export async function getTripTargetsForAI(): Promise<string[]> {
+  const query = `*[
+    _type == "homepage" &&
+    !(_id in path("drafts.**"))
+  ] | order(_updatedAt desc)[0]{
+    "targets": trips[]{
+      "title": title,
+      "slug": coalesce(slug.current, slug)
+    }
+  }.targets`;
+
+  const rows =
+    (await sanityServerClient.fetch<
+      { title?: string; slug?: string }[]
+    >(query, {}, { next: { revalidate: 0 } })) || [];
+
+  // Prefer titles (Morocco), but slug fallback
+  const clean = rows
+    .map((r) => (r?.title || r?.slug || "").trim())
+    .filter(Boolean);
+
+  // Remove duplicates
+  return Array.from(new Set(clean));
+}

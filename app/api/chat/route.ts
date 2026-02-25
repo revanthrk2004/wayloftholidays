@@ -1,6 +1,8 @@
+// app/api/chat/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { Resend } from "resend";
+import { getTripTargetsForAI } from "@/sanity/lib/queries";
 
 export const runtime = "nodejs";
 
@@ -36,8 +38,33 @@ type Body = {
   meta?: Meta;
 };
 
-const TARGETS = ["Morocco", "Albania", "Montenegro", "Jordan", "Turkey"];
+/* ---------------------------
+   ✅ Dynamic destinations
+---------------------------- */
+const FALLBACK_TARGETS = ["Morocco", "Albania", "Montenegro", "Jordan", "Turkey"];
 
+let targetsCache: { list: string[]; expiresAt: number } | null = null;
+
+async function getTargetsLive() {
+  const now = Date.now();
+
+  // cache for 60s
+  if (targetsCache && targetsCache.expiresAt > now) return targetsCache.list;
+
+  try {
+    const list = await getTripTargetsForAI();
+    const finalList = list.length ? list : FALLBACK_TARGETS;
+    targetsCache = { list: finalList, expiresAt: now + 60_000 };
+    return finalList;
+  } catch {
+    targetsCache = { list: FALLBACK_TARGETS, expiresAt: now + 30_000 };
+    return FALLBACK_TARGETS;
+  }
+}
+
+/* ---------------------------
+   Defaults
+---------------------------- */
 const EMPTY_CAPTURED: Captured = {
   name: null,
   email: null,
@@ -53,7 +80,7 @@ const EMPTY_CAPTURED: Captured = {
   notes: null,
 };
 
-function buildSystemPrompt() {
+function buildSystemPrompt(targets: string[]) {
   return `
 You are "WayLoft Concierge" for WayLoft Holidays.
 
@@ -64,7 +91,7 @@ Tone:
 - Ask ONE question per message.
 
 Destinations:
-- We currently focus on: ${TARGETS.join(", ")}.
+- We currently focus on: ${targets.join(", ")}.
 - If user asks outside these, politely ask if open to one of these.
 
 BUDGET RULE (IMPORTANT):
@@ -176,7 +203,7 @@ function replyMentionsAdvisor(reply: string) {
   return /advisor will reach out/i.test(reply);
 }
 
-// ---------- Auto-capture helpers ----------
+/* ---------- Auto-capture helpers ---------- */
 function extractEmail(text: string): string | null {
   const m = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   return m ? m[0].trim() : null;
@@ -206,7 +233,6 @@ function mentionsPerPerson(text: string) {
 }
 
 function extractBudgetNumber(text: string): number | null {
-  // accepts: £2000, 2000 pounds, 2,000, etc.
   const m = text
     .replace(/,/g, "")
     .match(/(?:£\s*)?(\d{2,})(?:\s*(?:pounds|gbp))?/i);
@@ -233,14 +259,13 @@ function appendNotes(existing: string | null, extra: string) {
 }
 
 function stripPerPersonPhrases(reply: string) {
-  // remove "per person" language if model sneaks it in
   return reply
     .replace(/\bper person\b/gi, "in total")
     .replace(/\bpp\b/gi, "in total")
     .replace(/\bper head\b/gi, "in total")
     .replace(/\beach\b/gi, "in total");
 }
-// ----------------------------------------
+/* ---------------------------------------- */
 
 export async function POST(req: Request) {
   try {
@@ -273,6 +298,9 @@ export async function POST(req: Request) {
 
     const looksLikeNo = isProbablyNo(lastUserMsg);
     const wantsAddMore = isAddMoreIntent(lastUserMsg);
+
+    // ✅ Dynamic targets from Sanity (Homepage trips)
+    const targets = await getTargetsLive();
 
     // 1) If already completed and user says "add more", ask what to add (no model call)
     if (prevStage === "completed" && wantsAddMore) {
@@ -307,7 +335,7 @@ export async function POST(req: Request) {
     }
 
     const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      { role: "system", content: buildSystemPrompt() },
+      { role: "system", content: buildSystemPrompt(targets) },
       {
         role: "system",
         content: `Previous known details (do not repeat questions for these):
@@ -367,20 +395,15 @@ captured=${JSON.stringify(effectiveCaptured)}
     }
 
     // ----------------- BUDGET HARD ENFORCEMENT (TOTAL ONLY) -----------------
-    // If the user message looks like per-person budget, do NOT accept it as final.
-    // Ask a single clarification for TOTAL budget.
     const userUsedPerPerson = mentionsPerPerson(lastUserMsg);
     const num = extractBudgetNumber(lastUserMsg);
 
     if (userUsedPerPerson && num !== null) {
-      // Force a clean clarification and prevent "per person" language.
       stage = "refine";
       reply = `Just to confirm, is that £${num} total for the whole trip?`;
-      // Don’t lock a per-person value into captured.budget
-      // (we keep previous budget if it existed, but we do NOT overwrite with this)
+      // do not overwrite budget with per-person figure
     }
 
-    // Also: if the model reply contains "per person", kill it.
     reply = stripPerPersonPhrases(reply);
     // ----------------------------------------------------------------------
 
@@ -426,8 +449,6 @@ captured=${JSON.stringify(effectiveCaptured)}
     }
 
     // ----------------- Email behaviour -----------------
-    // Email only when stage completed AND user said no.
-    // If they completed earlier and now completed again with new notes, hash changes -> sends UPDATE email.
     let didEmail = false;
     let nextEmailHash = prevEmailHash;
 
