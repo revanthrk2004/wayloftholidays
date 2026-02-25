@@ -19,7 +19,6 @@ const client = createClient({
   useCdn: false,
 });
 
-/* ✅ Sanity arrays need unique _key on every item */
 function key() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
@@ -48,15 +47,7 @@ function h2(text: string) {
   };
 }
 
-type LegalSeed = {
-  _id: string;
-  slug: string;
-  title: string;
-  subtitle: string;
-  content: any[];
-};
-
-const pages: LegalSeed[] = [
+const pages = [
   {
     _id: "legal.cookies",
     slug: "cookies",

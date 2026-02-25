@@ -186,7 +186,11 @@ export async function getLegalPage(slug: string): Promise<LegalPageData | null> 
     "slug": slug
   }`;
 
-  return sanityClient.fetch(query, { slug: slug.toLowerCase() });
+  return sanityClient.fetch(
+    query,
+    { slug: slug.toLowerCase() },
+    { next: { revalidate: 0 } }
+  );
 }
 
 export async function getLegalSlugs(): Promise<string[]> {
@@ -195,12 +199,17 @@ export async function getLegalSlugs(): Promise<string[]> {
     !(_id in path("drafts.**"))
   ].slug`;
 
-  const slugs = await sanityClient.fetch<string[]>(query);
+  const slugs = await sanityClient.fetch<string[]>(
+    query,
+    {},
+    { next: { revalidate: 0 } }
+  );
 
   return (slugs || [])
     .map((s) => String(s || "").trim().toLowerCase())
     .filter(Boolean);
 }
+
 export async function getLegalPageById(id: string): Promise<LegalPageData | null> {
   const query = `*[
     _type == "legalPage" &&
@@ -215,5 +224,9 @@ export async function getLegalPageById(id: string): Promise<LegalPageData | null
     "slug": slug
   }`;
 
-  return sanityClient.fetch(query, { id });
+  return sanityClient.fetch(
+    query,
+    { id },
+    { next: { revalidate: 0 } }
+  );
 }
