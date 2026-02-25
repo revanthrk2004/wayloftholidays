@@ -9,20 +9,23 @@ export default defineType({
       name: "slug",
       title: "Slug",
       type: "string",
-      description: "Use: cookies, privacy, terms, disclaimer",
+      description: "Use exactly: cookies, privacy, terms, disclaimer",
       validation: (Rule) => Rule.required(),
     }),
+
     defineField({
       name: "title",
       title: "Title",
       type: "string",
       validation: (Rule) => Rule.required(),
     }),
+
     defineField({
       name: "subtitle",
       title: "Subtitle",
       type: "string",
     }),
+
     defineField({
       name: "content",
       title: "Content",
@@ -32,6 +35,15 @@ export default defineType({
   ],
 
   preview: {
-    select: { title: "title", subtitle: "slug" },
+    select: {
+      title: "title",
+      subtitle: "slug",
+    },
+    prepare({ title, subtitle }) {
+      return {
+        title: title || "Legal Page",
+        subtitle: `Slug: ${subtitle || "missing"}`,
+      };
+    },
   },
 });

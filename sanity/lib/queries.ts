@@ -1,5 +1,5 @@
 import { sanityClient } from "./client";
-
+import { sanityServerClient } from "./server-client";
 /* =========================
    HOMEPAGE TYPES
 ========================= */
@@ -183,22 +183,6 @@ export async function getLegalPageById(id: string): Promise<LegalPageData | null
     "slug": slug
   }`;
 
-  return sanityClient.fetch(query, { id }, { next: { revalidate: 0 } });
-}
-
-/** ✅ TEMP: list what's actually in production (remove later) */
-export async function listLegalPages(): Promise<
-  { _id: string; slug: string; title: string; _updatedAt: string }[]
-> {
-  const query = `*[
-    _type == "legalPage" &&
-    !(_id in path("drafts.**"))
-  ]{
-    _id,
-    "slug": slug,
-    title,
-    _updatedAt
-  } | order(_updatedAt desc)`;
-
-  return sanityClient.fetch(query, {}, { next: { revalidate: 0 } });
+  // ✅ SAME style as Site Settings: no caching
+  return sanityServerClient.fetch(query, { id });
 }

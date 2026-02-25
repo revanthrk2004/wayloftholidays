@@ -8,11 +8,22 @@ import { getLegalPageById } from "@/sanity/lib/queries";
 
 export default async function TermsPage() {
   noStore();
+
   const cms = await getLegalPageById("legal.terms");
 
   return (
-    <LegalShell title={cms?.title || "Terms of Service"} subtitle={cms?.subtitle || ""}>
-      {cms?.content?.length ? <PortableText value={cms.content} /> : <p>No CMS content found.</p>}
+    <LegalShell
+      title={cms?.title || "Terms of Service"}
+      subtitle={
+        cms?.subtitle ||
+        "These terms explain how the WayLoft Holidays website and trip planning service works."
+      }
+    >
+      {cms?.content?.length ? (
+        <PortableText value={cms.content} />
+      ) : (
+        <p>No CMS content found.</p>
+      )}
     </LegalShell>
   );
 }

@@ -8,11 +8,21 @@ import { getLegalPageById } from "@/sanity/lib/queries";
 
 export default async function PrivacyPage() {
   noStore();
+
   const cms = await getLegalPageById("legal.privacy");
 
   return (
-    <LegalShell title={cms?.title || "Privacy Policy"} subtitle={cms?.subtitle || ""}>
-      {cms?.content?.length ? <PortableText value={cms.content} /> : <p>No CMS content found.</p>}
+    <LegalShell
+      title={cms?.title || "Privacy Policy"}
+      subtitle={
+        cms?.subtitle || "How we handle your information when you use WayLoft Holidays."
+      }
+    >
+      {cms?.content?.length ? (
+        <PortableText value={cms.content} />
+      ) : (
+        <p>No CMS content found.</p>
+      )}
     </LegalShell>
   );
 }
