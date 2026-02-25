@@ -107,7 +107,7 @@ export default function Trips({ cms }: { cms?: HomeData }) {
           </p>
         </div>
 
-        <div className="relative mt-10 overflow-visible rounded-[32px] ring-1 ring-black/10">
+        <div className="relative mt-10 overflow-hidden rounded-[32px] ring-1 ring-black/10">
           {/* Background */}
           <div className="absolute inset-0">
             <AnimatePresence mode="sync" initial={false}>
