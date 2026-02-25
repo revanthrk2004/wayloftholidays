@@ -11,10 +11,7 @@ export default async function PrivacyPage() {
   const cms = await getLegalPageById("legal.privacy");
 
   return (
-    <LegalShell
-      title={cms?.title || "Privacy Policy"}
-      subtitle={cms?.subtitle || "How we handle your information when you use WayLoft Holidays."}
-    >
+    <LegalShell title={cms?.title || "Privacy Policy"} subtitle={cms?.subtitle || ""}>
       {cms?.content?.length ? <PortableText value={cms.content} /> : <p>No CMS content found.</p>}
     </LegalShell>
   );

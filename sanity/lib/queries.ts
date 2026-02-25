@@ -169,47 +169,6 @@ export type LegalPageData = {
   slug?: string;
 };
 
-/* =========================
-   LEGAL QUERIES
-========================= */
-export async function getLegalPage(slug: string): Promise<LegalPageData | null> {
-  const query = `*[
-    _type == "legalPage" &&
-    !(_id in path("drafts.**")) &&
-    lower(slug) == $slug
-  ] | order(_updatedAt desc)[0]{
-    _id,
-    _updatedAt,
-    title,
-    subtitle,
-    content,
-    "slug": slug
-  }`;
-
-  return sanityClient.fetch(
-    query,
-    { slug: slug.toLowerCase() },
-    { next: { revalidate: 0 } }
-  );
-}
-
-export async function getLegalSlugs(): Promise<string[]> {
-  const query = `*[
-    _type == "legalPage" &&
-    !(_id in path("drafts.**"))
-  ].slug`;
-
-  const slugs = await sanityClient.fetch<string[]>(
-    query,
-    {},
-    { next: { revalidate: 0 } }
-  );
-
-  return (slugs || [])
-    .map((s) => String(s || "").trim().toLowerCase())
-    .filter(Boolean);
-}
-
 export async function getLegalPageById(id: string): Promise<LegalPageData | null> {
   const query = `*[
     _type == "legalPage" &&
@@ -224,9 +183,22 @@ export async function getLegalPageById(id: string): Promise<LegalPageData | null
     "slug": slug
   }`;
 
-  return sanityClient.fetch(
-    query,
-    { id },
-    { next: { revalidate: 0 } }
-  );
+  return sanityClient.fetch(query, { id }, { next: { revalidate: 0 } });
+}
+
+/** ✅ TEMP: list what's actually in production (remove later) */
+export async function listLegalPages(): Promise<
+  { _id: string; slug: string; title: string; _updatedAt: string }[]
+> {
+  const query = `*[
+    _type == "legalPage" &&
+    !(_id in path("drafts.**"))
+  ]{
+    _id,
+    "slug": slug,
+    title,
+    _updatedAt
+  } | order(_updatedAt desc)`;
+
+  return sanityClient.fetch(query, {}, { next: { revalidate: 0 } });
 }

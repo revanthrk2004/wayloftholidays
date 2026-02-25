@@ -11,10 +11,7 @@ export default async function DisclaimerPage() {
   const cms = await getLegalPageById("legal.disclaimer");
 
   return (
-    <LegalShell
-      title={cms?.title || "Disclaimer"}
-      subtitle={cms?.subtitle || "Important info about the content and recommendations on this website."}
-    >
+    <LegalShell title={cms?.title || "Disclaimer"} subtitle={cms?.subtitle || ""}>
       {cms?.content?.length ? <PortableText value={cms.content} /> : <p>No CMS content found.</p>}
     </LegalShell>
   );

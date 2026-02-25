@@ -4,12 +4,14 @@ dotenv.config({ path: ".env.local" });
 import { createClient } from "@sanity/client";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
-const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2025-01-01";
 const token = process.env.SANITY_API_TOKEN!;
 
 if (!projectId) throw new Error("Missing NEXT_PUBLIC_SANITY_PROJECT_ID");
 if (!token) throw new Error("Missing SANITY_API_TOKEN (write token)");
+
+/** ✅ FORCE production so there is zero confusion */
+const dataset = "production";
+const apiVersion = "2025-01-01";
 
 const client = createClient({
   projectId,
@@ -147,7 +149,7 @@ const pages = [
 ];
 
 async function main() {
-  console.log("✅ Seeding legal pages...");
+  console.log(`✅ Seeding legal pages to project=${projectId} dataset=${dataset} ...`);
 
   for (const p of pages) {
     await client.createOrReplace({
@@ -159,8 +161,14 @@ async function main() {
       content: p.content,
     });
 
-    console.log(`→ Seeded: ${p.slug}`);
+    console.log(`→ Seeded: ${p._id}`);
   }
+
+  // ✅ Verify immediately (no guessing)
+  const check = await client.fetch(
+    `*[_type=="legalPage" && !(_id in path("drafts.**"))]{_id, slug, title} | order(_id asc)`
+  );
+  console.log("✅ Verified docs in production:", check);
 
   console.log("✅ Done. Open Studio → Legal Page and refresh.");
 }
