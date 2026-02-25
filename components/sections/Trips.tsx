@@ -169,7 +169,7 @@ export default function Trips({ cms }: { cms?: HomeData }) {
             </div>
 
             {/* RIGHT: tiles (mobile stays 2x2, no swipe) */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+            <div className="grid max-h-[420px] overflow-y-auto grid-cols-2 gap-3 pr-2">
               {trips.map((t) => {
                 const isActive = t.slug === active.slug;
 
