@@ -107,7 +107,7 @@ export default function Header() {
             y: shellY,
           }}
           className={[
-            "mt-4 rounded-[22px] border backdrop-blur-xl",
+            "mt-4 rounded-[22px] border md:backdrop-blur-xl backdrop-blur-none",
             "px-3 py-2 md:px-4",
             "ring-1 ring-white/40",
           ].join(" ")}

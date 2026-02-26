@@ -138,7 +138,7 @@ const watermarkUrl = useMemo(() => {
                 variants={itemV}
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                className="group rounded-3xl bg-white/70 p-6 ring-1 ring-black/10 backdrop-blur-xl"
+                className="group rounded-3xl bg-white/70 p-6 ring-1 ring-black/10 md:backdrop-blur-xl backdrop-blur-none"
               >
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--light) text-(--primary) ring-1 ring-black/5">

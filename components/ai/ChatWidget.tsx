@@ -167,7 +167,7 @@ export default function ChatWidget() {
             transition={{ duration: 0.22 }}
             className="fixed bottom-5 right-5 z-9999 w-[92vw] max-w-sm overflow-hidden rounded-3xl bg-white ring-1 ring-black/10 shadow-[0_30px_90px_rgba(11,60,111,0.22)]"
           >
-            <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 py-3 backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 py-3 md:backdrop-blur-xl backdrop-blur-none">
               <div className="flex items-center gap-3">
                 <div className="relative h-9 w-9 overflow-hidden rounded-xl ring-1 ring-black/10 bg-white">
                   <Image src="/wayloft-logo1.png" alt="WayLoft" fill className="object-cover" priority />

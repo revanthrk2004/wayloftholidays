@@ -137,7 +137,7 @@ export default function Hero({ cms }: { cms?: HomeData }) {
 
               <button
                 onClick={() => setOpenIntro(true)}
-                className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-7 py-4 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-7 py-4 text-sm font-semibold text-white ring-1 ring-white/15 md:backdrop-blur-xl backdrop-blur-none hover:bg-white/15"
               >
                 <Play className="h-4 w-4" />
                 Watch intro

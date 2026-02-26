@@ -35,7 +35,7 @@ export default function CookieBanner() {
   if (!mounted || !show) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-40 w-[92vw] max-w-2xl -translate-x-1/2 rounded-3xl bg-white/90 p-4 backdrop-blur-xl ring-1 ring-black/10 shadow-[0_30px_90px_rgba(0,0,0,0.12)]">
+    <div className="fixed bottom-4 left-1/2 z-40 w-[92vw] max-w-2xl -translate-x-1/2 rounded-3xl bg-white/90 p-4 md:backdrop-blur-xl backdrop-blur-none ring-1 ring-black/10 shadow-[0_30px_90px_rgba(0,0,0,0.12)]">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="text-sm text-(--text)">
           We use cookies to improve your experience, analyse traffic, and personalise content.

@@ -130,7 +130,7 @@ export default function Experiences({ cms }: { cms?: HomeData }) {
 
             <a
               href="#trips"
-              className="group inline-flex w-fit items-center gap-2 rounded-2xl bg-white/70 px-4 py-2 text-sm font-semibold text-(--primary) ring-1 ring-black/10 backdrop-blur-xl hover:bg-white"
+              className="group inline-flex w-fit items-center gap-2 rounded-2xl bg-white/70 px-4 py-2 text-sm font-semibold text-(--primary) ring-1 ring-black/10 md:backdrop-blur-xl backdrop-blur-none hover:bg-white"
             >
               Explore trips
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -147,7 +147,7 @@ export default function Experiences({ cms }: { cms?: HomeData }) {
                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
                 className={[
                   "group relative overflow-hidden rounded-3xl",
-                  "bg-white/65 ring-1 ring-black/10 backdrop-blur-xl",
+                  "bg-white/65 ring-1 ring-black/10 md:backdrop-blur-xl backdrop-blur-none",
                   "p-6 md:p-7",
                 ].join(" ")}
               >

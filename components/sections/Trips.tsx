@@ -18,7 +18,11 @@ import { urlFor } from "@/sanity/lib/image";
 function getImageUrl(img: any) {
   if (!img) return "";
   try {
-    return urlFor(img).width(2200).quality(85).url();
+    return urlFor(img)
+      .width(1400) // smaller for mobile
+      .quality(70)
+      .format("webp")
+      .url();
   } catch {
     return "";
   }
@@ -136,7 +140,7 @@ export default function Trips({ cms }: { cms?: HomeData }) {
           <div className="relative grid gap-4 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-8">
             {/* LEFT */}
             <div className="flex flex-col justify-end">
-              <div className="inline-flex w-fit items-center rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl">
+              <div className="inline-flex w-fit items-center rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 md:backdrop-blur-xl backdrop-blur-none">
                 VISIT
               </div>
 
@@ -161,7 +165,7 @@ export default function Trips({ cms }: { cms?: HomeData }) {
                   onClick={() =>
                     window.dispatchEvent(new Event("WayLoft:open-ai"))
                   }
-                  className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
+                  className="rounded-2xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/15 md:backdrop-blur-xl backdrop-blur-none hover:bg-white/15"
                 >
                   Ask WayLoft AI
                 </button>

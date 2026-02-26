@@ -30,7 +30,7 @@ export default function IntroModal({
           >
             <button
               onClick={onClose}
-              className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15 backdrop-blur-xl hover:bg-white/15"
+              className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15 md:backdrop-blur-xl backdrop-blur-none hover:bg-white/15"
               aria-label="Close intro"
             >
               <X className="h-5 w-5" />

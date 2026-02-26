@@ -119,7 +119,7 @@ export default async function TripPage({
           <div className="absolute inset-0 opacity-[0.14] bg-[linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-size-[56px_56px]" />
 
           <div className="relative p-6 md:p-10">
-            <div className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 backdrop-blur-xl">
+            <div className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/15 md:backdrop-blur-xl backdrop-blur-none">
               DESTINATION
             </div>
 
@@ -132,7 +132,7 @@ export default async function TripPage({
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/90 ring-1 ring-white/15 backdrop-blur-xl">
+              <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/90 ring-1 ring-white/15 md:backdrop-blur-xl backdrop-blur-none">
                 <span className="text-xs font-semibold tracking-wide text-white/70">
                   VIBE
                 </span>
